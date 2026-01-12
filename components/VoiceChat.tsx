@@ -25,7 +25,6 @@ const VoiceChat: React.FC<VoiceChatProps> = ({ userProfile, appMode, onFeedback,
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | null>(null);
 
-  // Use refs for transcription to avoid closure issues and track full turn text
   const currentInputTranscription = useRef('');
   const currentOutputTranscription = useRef('');
 
@@ -93,21 +92,28 @@ const VoiceChat: React.FC<VoiceChatProps> = ({ userProfile, appMode, onFeedback,
   const startSession = async () => {
     try {
       const isExhausted = userProfile.credits <= 0 && userProfile.role !== 'admin' && appMode === 'paid';
-      if (isExhausted) return;
+      if (isExhausted) {
+        setError("Institutional word limits exhausted.");
+        return;
+      }
 
       setError(null);
       setStatus('connecting');
       
-      // Create a new GoogleGenAI instance right before making an API call
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const audioCtx = new AudioContext({ sampleRate: 16000 });
       const outputCtx = new AudioContext({ sampleRate: 24000 });
+      
+      // Ensure context is running (fixes silent initial start in some browsers)
+      if (audioCtx.state === 'suspended') await audioCtx.resume();
+      if (outputCtx.state === 'suspended') await outputCtx.resume();
+
       audioContextRef.current = audioCtx;
       outputAudioContextRef.current = outputCtx;
       analyzerRef.current = audioCtx.createAnalyser();
-      const source = audioCtx.createMediaStreamSource(stream);
-      source.connect(analyzerRef.current);
+      const sourceNode = audioCtx.createMediaStreamSource(stream);
+      sourceNode.connect(analyzerRef.current);
 
       const sessionPromise = ai.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-12-2025',
@@ -119,16 +125,14 @@ const VoiceChat: React.FC<VoiceChatProps> = ({ userProfile, appMode, onFeedback,
             scriptProcessor.onaudioprocess = (e) => {
               const inputData = e.inputBuffer.getChannelData(0);
               const pcmBlob = createBlob(inputData);
-              // CRITICAL: Solely rely on sessionPromise resolves and then call `session.sendRealtimeInput`
               sessionPromise.then((session) => {
                 session.sendRealtimeInput({ media: pcmBlob });
               });
             };
-            source.connect(scriptProcessor);
+            sourceNode.connect(scriptProcessor);
             scriptProcessor.connect(audioCtx.destination);
           },
           onmessage: async (message: LiveServerMessage) => {
-            // Audio Transcription Handling as per guidelines
             if (message.serverContent?.outputTranscription) {
               const text = message.serverContent.outputTranscription.text ?? '';
               currentOutputTranscription.current += text;
@@ -139,35 +143,28 @@ const VoiceChat: React.FC<VoiceChatProps> = ({ userProfile, appMode, onFeedback,
             }
 
             if (message.serverContent?.turnComplete) {
-              // Finalize deduction when turn is complete
-              const finalOut = currentOutputTranscription.current;
-              const finalIn = currentInputTranscription.current;
-              const totalWords = (finalOut.split(/\s+/).length) + (finalIn.split(/\s+/).length);
+              const totalWords = (currentOutputTranscription.current.split(/\s+/).length) + (currentInputTranscription.current.split(/\s+/).length);
               onDeduct(totalWords);
-              
               currentInputTranscription.current = '';
               currentOutputTranscription.current = '';
-              // Optional: Clear UI transcription or keep it for a moment
             }
             
-            // Audio Output Processing as per guidelines
             const audioData = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
             if (audioData) {
               setStatus('speaking');
               nextStartTimeRef.current = Math.max(nextStartTimeRef.current, outputCtx.currentTime);
-              // Decoding logic must be manually implemented for raw PCM streams
               const buffer = await decodeAudioData(decode(audioData), outputCtx, 24000, 1);
-              const sourceNode = outputCtx.createBufferSource();
-              sourceNode.buffer = buffer;
-              sourceNode.connect(outputCtx.destination);
-              sourceNode.addEventListener('ended', () => {
-                sourcesRef.current.delete(sourceNode);
+              const source = outputCtx.createBufferSource();
+              source.buffer = buffer;
+              source.connect(outputCtx.destination);
+              source.addEventListener('ended', () => {
+                sourcesRef.current.delete(source);
                 if (sourcesRef.current.size === 0) setStatus('listening');
               });
 
-              sourceNode.start(nextStartTimeRef.current);
+              source.start(nextStartTimeRef.current);
               nextStartTimeRef.current += buffer.duration;
-              sourcesRef.current.add(sourceNode);
+              sourcesRef.current.add(source);
             }
 
             if (message.serverContent?.interrupted) {
@@ -178,19 +175,23 @@ const VoiceChat: React.FC<VoiceChatProps> = ({ userProfile, appMode, onFeedback,
               nextStartTimeRef.current = 0;
             }
           },
-          onerror: (e) => {
+          onerror: (e: any) => {
             console.error('Nova AI Voice Session Error:', e);
-            setError('Institutional link interrupted. Please verify key.');
+            let msg = 'Voice session interrupted.';
+            if (e.message?.includes('429')) {
+              msg = "Institutional Voice Quota Reached. Please wait a few minutes.";
+            }
+            setError(msg);
             stopSession();
           },
-          onclose: (e) => {
+          onclose: () => {
             console.debug('Nova AI Voice Session Closed');
             stopSession();
           }
         },
         config: {
-          responseModalities: [Modality.AUDIO], // Must contain exactly Modality.AUDIO
-          systemInstruction: NOVA_AI_SYSTEM_INSTRUCTION + `\n\nCONTEXT: User Name: ${userProfile.name}, User Type: ${userProfile.type}. Always prioritize current school admission data.`,
+          responseModalities: [Modality.AUDIO],
+          systemInstruction: NOVA_AI_SYSTEM_INSTRUCTION + `\n\nCONTEXT: User Name: ${userProfile.name}, User Type: ${userProfile.type}.`,
           speechConfig: { 
             voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } 
           },
@@ -201,9 +202,11 @@ const VoiceChat: React.FC<VoiceChatProps> = ({ userProfile, appMode, onFeedback,
 
       sessionPromiseRef.current = sessionPromise;
       drawVisualizer();
-    } catch (e) { 
+    } catch (e: any) { 
       console.error('Nova AI Voice Start error:', e);
-      setError(`Access denied. Check microphone permissions and API settings.`); 
+      let msg = "Check microphone permissions and API connectivity.";
+      if (e.message?.includes('429')) msg = "Quota limits reached.";
+      setError(msg); 
       setStatus('idle'); 
     }
   };

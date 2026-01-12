@@ -56,6 +56,8 @@ const TextChat: React.FC<TextChatProps> = ({ userProfile, appMode, onLog, onDedu
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const currentSourceRef = useRef<AudioBufferSourceNode | null>(null);
@@ -64,7 +66,6 @@ const TextChat: React.FC<TextChatProps> = ({ userProfile, appMode, onLog, onDedu
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
-  // Ensure AudioContext is initialized and resumed
   const ensureAudioContext = async () => {
     if (!audioContextRef.current) {
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
@@ -80,9 +81,8 @@ const TextChat: React.FC<TextChatProps> = ({ userProfile, appMode, onLog, onDedu
       setIsSpeaking(true);
       const ctx = await ensureAudioContext();
       
-      // Stop current speech if any
       if (currentSourceRef.current) {
-        currentSourceRef.current.stop();
+        try { currentSourceRef.current.stop(); } catch (e) {}
       }
 
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -116,19 +116,24 @@ const TextChat: React.FC<TextChatProps> = ({ userProfile, appMode, onLog, onDedu
       } else {
         setIsSpeaking(false);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Nova AI TTS Error:", err);
       setIsSpeaking(false);
+      if (err.message?.includes('429')) {
+        console.warn("TTS Quota exceeded - silent response fallback.");
+      }
     }
   };
 
   const handleSend = async () => {
     if (!input.trim() || isTyping) return;
     
-    // Resume context on user interaction
+    setError(null);
     await ensureAudioContext();
 
-    onDeduct(input.trim().split(/\s+/).length);
+    const wordCount = input.trim().split(/\s+/).length;
+    onDeduct(wordCount);
+    
     const userMessage: Message = { role: 'user', content: input, timestamp: Date.now() };
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
@@ -173,12 +178,18 @@ const TextChat: React.FC<TextChatProps> = ({ userProfile, appMode, onLog, onDedu
       setMessages(finalMessages);
       if (onLog) onLog(finalMessages);
 
-      // Trigger text-to-speech for assistant response
       generateSpeech(textOutput);
 
-    } catch (e) {
+    } catch (e: any) {
       console.error("Nova AI Chat Error:", e);
-      setMessages(prev => [...prev, { role: 'assistant', content: "An error occurred. Please verify connectivity.", timestamp: Date.now() }]);
+      let errorMessage = "An error occurred. Please verify connectivity.";
+      
+      if (e.message?.includes('429')) {
+        errorMessage = "Nova AI Quota Exceeded. The school's institutional API limits have been reached for this hour. Please wait a few minutes or contact support if the issue persists.";
+      }
+
+      setError(errorMessage);
+      setMessages(prev => [...prev, { role: 'assistant', content: errorMessage, timestamp: Date.now() }]);
     } finally {
       setIsTyping(false);
     }
@@ -192,6 +203,7 @@ const TextChat: React.FC<TextChatProps> = ({ userProfile, appMode, onLog, onDedu
         ))}
         {isTyping && <div className="text-[10px] font-bold text-nova-gold/40 animate-pulse ml-2">Nova AI is thinking...</div>}
         {isSpeaking && <div className="text-[10px] font-bold text-nova-gold animate-pulse ml-2"><i className="fas fa-volume-up mr-2"></i>Nova AI is speaking...</div>}
+        {error && <div className="text-[10px] font-bold text-red-500/60 ml-2 italic">{error}</div>}
         <div ref={messagesEndRef} className="h-4" />
       </div>
 
