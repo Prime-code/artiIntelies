@@ -9,6 +9,19 @@ import { GoogleGenAI } from "@google/genai";
 import { InteractionMode, UserProfile, Message, ChatLog, FeedbackLog, AppMode, AuditLog, SecuritySettings } from './types';
 import { SCHOOL_DETAILS, PLANS } from './constants';
 
+// Fix: Define the AIStudio interface to match the global type name expected by the environment.
+export interface AIStudio {
+  hasSelectedApiKey: () => Promise<boolean>;
+  openSelectKey: () => Promise<void>;
+}
+
+declare global {
+  interface Window {
+    // Fix: Using optional modifier to match standard environment definitions of aistudio.
+    aistudio?: AIStudio;
+  }
+}
+
 const App: React.FC = () => {
   const [mode, setMode] = useState<InteractionMode>(InteractionMode.VOICE);
   const [showAdmin, setShowAdmin] = useState(false);
@@ -57,18 +70,33 @@ const App: React.FC = () => {
   const [onboardingStep, setOnboardingStep] = useState<number>(0);
   const [keyError, setKeyError] = useState(false);
 
-  useEffect(() => {
-    // Robust check for the API key string injected by Vite
+  const checkKeyStatus = useCallback(async () => {
     const apiKey = process.env.API_KEY;
-    const isMissing = !apiKey || apiKey === 'undefined' || apiKey === '' || apiKey.length < 5;
+    const isBuildKeyMissing = !apiKey || apiKey === 'undefined' || apiKey === '' || apiKey.length < 5;
     
-    if (isMissing) {
-      console.error("NOVA AI SECURITY ALERT: API_KEY is not detected in the current build. Please ensure 'API_KEY' is set in your Vercel Project Environment Variables and trigger a new deployment.");
-      setKeyError(true);
-    } else {
-      setKeyError(false);
+    if (isBuildKeyMissing) {
+      const hasManualKey = await window.aistudio?.hasSelectedApiKey();
+      if (!hasManualKey) {
+        setKeyError(true);
+        return;
+      }
     }
+    setKeyError(false);
   }, []);
+
+  useEffect(() => {
+    checkKeyStatus();
+  }, [checkKeyStatus]);
+
+  const handleManualKeySelection = async () => {
+    if (window.aistudio?.openSelectKey) {
+      await window.aistudio.openSelectKey();
+      // Assume success as per guidelines to mitigate race conditions
+      setKeyError(false);
+    } else {
+      alert("Institutional selection is only available in the supported production environment.");
+    }
+  };
 
   useEffect(() => {
     if (profile.isAuthenticated) {
@@ -181,17 +209,14 @@ const App: React.FC = () => {
 
   const logChat = useCallback(async (messages: Message[]) => {
     const apiKey = process.env.API_KEY;
-    if (profile.role === 'admin' || messages.length < 2 || !apiKey || apiKey.length < 5) return;
+    if (profile.role === 'admin' || messages.length < 2) return;
     try {
-      // Create a new GoogleGenAI instance right before making an API call
       const ai = new GoogleGenAI({ apiKey });
       const lastFew = messages.slice(-4).map(m => `${m.role}: ${m.content}`).join('\n');
-      // When using generate content for text answers, use string contents as per guidelines
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: `Summarize in one short sentence: \n\n${lastFew}`,
       });
-      // Correct extraction of text output from GenerateContentResponse
       const summary = response.text?.trim() || "Active session.";
       setAllChats(prev => [{ userName: profile.name, messages, timestamp: Date.now(), summary }, ...prev]);
     } catch (e) {
@@ -228,8 +253,25 @@ const App: React.FC = () => {
       )}
 
       {keyError && (
-        <div className="bg-red-600 text-white text-[10px] font-black py-2 text-center relative z-[100] uppercase tracking-widest animate-pulse">
-           Nova AI Offline: Institutional API Key Missing. Please alert the administrator.
+        <div className="bg-red-600/90 backdrop-blur-md text-white py-3 px-6 flex flex-col md:flex-row items-center justify-center gap-4 relative z-[100] border-b border-white/10">
+           <div className="flex items-center gap-3">
+             <i className="fas fa-plug-circle-exclamation text-xl animate-pulse"></i>
+             <span className="text-[10px] font-black uppercase tracking-widest text-center">Institutional Link Pending</span>
+           </div>
+           <button 
+             onClick={handleManualKeySelection}
+             className="bg-white text-nova-navy px-6 py-2 rounded-full text-[9px] font-black uppercase tracking-widest hover:bg-nova-gold transition-all shadow-xl"
+           >
+             Authorize Nova AI Link
+           </button>
+           <a 
+             href="https://ai.google.dev/gemini-api/docs/billing" 
+             target="_blank" 
+             rel="noopener noreferrer"
+             className="text-[8px] font-bold underline opacity-60 hover:opacity-100"
+           >
+             Billing Requirements
+           </a>
         </div>
       )}
 

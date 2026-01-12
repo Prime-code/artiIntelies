@@ -43,7 +43,7 @@ export const SCHOOL_DETAILS = {
 };
 
 export const PLANS: Plan[] = [
-  { id: 'free', name: 'Nova Discovery', price: 0, duration: 'daily', wordLimit: 4000 },
+  { id: 'free', name: 'Nova Discovery', price: 0, duration: 'daily', wordLimit: 3000 },
   { id: 'daily', name: 'Daily Pulse', price: 5070, duration: 'daily', wordLimit: 5760 },
   { id: 'weekly', name: 'Weekly Insight', price: 21070, duration: 'weekly', wordLimit: 40320 },
   { id: 'monthly', name: 'Monthly Excellence', price: 82070, duration: 'monthly', wordLimit: 172800 },
