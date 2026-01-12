@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import Auth from './components/Auth';
 import TextChat from './components/TextChat';
@@ -59,11 +58,15 @@ const App: React.FC = () => {
   const [keyError, setKeyError] = useState(false);
 
   useEffect(() => {
-    // Robust check for the API key string
+    // Check if process.env.API_KEY was successfully replaced by Vite during build
     const apiKey = process.env.API_KEY;
-    if (!apiKey || apiKey === 'undefined' || apiKey === '' || apiKey.length < 10) {
-      console.error("CRITICAL ERROR: API_KEY is missing or invalid. Check Vercel Project Settings.");
+    const isMissing = !apiKey || apiKey === 'undefined' || apiKey === '' || apiKey.length < 10;
+    
+    if (isMissing) {
+      console.error("CRITICAL ERROR: API_KEY is missing or invalid. Ensure you have added 'API_KEY' to your Vercel Environment Variables and triggered a fresh build.");
       setKeyError(true);
+    } else {
+      setKeyError(false);
     }
   }, []);
 
