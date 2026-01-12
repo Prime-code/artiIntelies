@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import Auth from './components/Auth';
 import TextChat from './components/TextChat';
@@ -9,18 +10,9 @@ import { GoogleGenAI } from "@google/genai";
 import { InteractionMode, UserProfile, Message, ChatLog, FeedbackLog, AppMode, AuditLog, SecuritySettings } from './types';
 import { SCHOOL_DETAILS, PLANS } from './constants';
 
-// Fix: Define the AIStudio interface to match the global type name expected by the environment.
-export interface AIStudio {
-  hasSelectedApiKey: () => Promise<boolean>;
-  openSelectKey: () => Promise<void>;
-}
-
-declare global {
-  interface Window {
-    // Fix: Using optional modifier to match standard environment definitions of aistudio.
-    aistudio?: AIStudio;
-  }
-}
+// Removed redundant AIStudio interface and Window augmentation to resolve 
+// "Subsequent property declarations must have the same type" error.
+// The environment provides the global window.aistudio definition.
 
 const App: React.FC = () => {
   const [mode, setMode] = useState<InteractionMode>(InteractionMode.VOICE);
@@ -70,31 +62,41 @@ const App: React.FC = () => {
   const [onboardingStep, setOnboardingStep] = useState<number>(0);
   const [keyError, setKeyError] = useState(false);
 
+  // Safely check for API key status, assuming window.aistudio is provided by the context.
   const checkKeyStatus = useCallback(async () => {
     const apiKey = process.env.API_KEY;
+    // Check if the key is missing, undefined as a string, or simply too short.
     const isBuildKeyMissing = !apiKey || apiKey === 'undefined' || apiKey === '' || apiKey.length < 5;
     
     if (isBuildKeyMissing) {
-      const hasManualKey = await window.aistudio?.hasSelectedApiKey();
-      if (!hasManualKey) {
-        setKeyError(true);
-        return;
+      // If window.aistudio exists, check if a manual key was selected in the environment.
+      // Accessing as any to bypass potential remaining global definition conflicts.
+      const win = window as any;
+      if (win.aistudio) {
+        const hasManualKey = await win.aistudio.hasSelectedApiKey();
+        if (hasManualKey) {
+          setKeyError(false);
+          return;
+        }
       }
+      setKeyError(true);
+    } else {
+      setKeyError(false);
     }
-    setKeyError(false);
   }, []);
 
   useEffect(() => {
     checkKeyStatus();
   }, [checkKeyStatus]);
 
+  // Handle manual key selection using the provided platform tool.
   const handleManualKeySelection = async () => {
-    if (window.aistudio?.openSelectKey) {
-      await window.aistudio.openSelectKey();
-      // Assume success as per guidelines to mitigate race conditions
+    const win = window as any;
+    if (win.aistudio?.openSelectKey) {
+      await win.aistudio.openSelectKey();
       setKeyError(false);
     } else {
-      alert("Institutional selection is only available in the supported production environment.");
+      alert("Manual authorization is only available when running inside the supported platform frame. For Vercel deployments, please add 'API_KEY' to your Project Environment Variables and REDEPLOY.");
     }
   };
 
@@ -253,25 +255,30 @@ const App: React.FC = () => {
       )}
 
       {keyError && (
-        <div className="bg-red-600/90 backdrop-blur-md text-white py-3 px-6 flex flex-col md:flex-row items-center justify-center gap-4 relative z-[100] border-b border-white/10">
-           <div className="flex items-center gap-3">
-             <i className="fas fa-plug-circle-exclamation text-xl animate-pulse"></i>
-             <span className="text-[10px] font-black uppercase tracking-widest text-center">Institutional Link Pending</span>
+        <div className="bg-red-600/95 backdrop-blur-md text-white py-4 px-6 flex flex-col items-center justify-center gap-4 relative z-[100] border-b border-white/10 shadow-2xl">
+           <div className="flex items-center gap-4">
+             <i className="fas fa-triangle-exclamation text-2xl animate-pulse"></i>
+             <div className="text-center md:text-left">
+               <span className="text-[11px] font-black uppercase tracking-widest block">Vercel API Key Required</span>
+               <span className="text-[9px] opacity-70 block">Vite was unable to find 'API_KEY' in your environment during the build.</span>
+             </div>
            </div>
-           <button 
-             onClick={handleManualKeySelection}
-             className="bg-white text-nova-navy px-6 py-2 rounded-full text-[9px] font-black uppercase tracking-widest hover:bg-nova-gold transition-all shadow-xl"
-           >
-             Authorize Nova AI Link
-           </button>
-           <a 
-             href="https://ai.google.dev/gemini-api/docs/billing" 
-             target="_blank" 
-             rel="noopener noreferrer"
-             className="text-[8px] font-bold underline opacity-60 hover:opacity-100"
-           >
-             Billing Requirements
-           </a>
+           <div className="flex gap-4">
+             <button 
+               onClick={handleManualKeySelection}
+               className="bg-white text-nova-navy px-8 py-2 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-nova-gold transition-all shadow-xl"
+             >
+               Retry Authorization
+             </button>
+             <a 
+               href="https://ai.google.dev/gemini-api/docs/billing" 
+               target="_blank" 
+               rel="noopener noreferrer"
+               className="text-[9px] font-bold underline opacity-80 hover:opacity-100 flex items-center"
+             >
+               View Billing Info
+             </a>
+           </div>
         </div>
       )}
 
