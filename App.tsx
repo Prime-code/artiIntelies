@@ -59,8 +59,10 @@ const App: React.FC = () => {
   const [keyError, setKeyError] = useState(false);
 
   useEffect(() => {
-    if (!process.env.API_KEY || process.env.API_KEY === 'undefined' || process.env.API_KEY === '') {
-      console.error("NOVA AI ERROR: API_KEY is missing. Add 'API_KEY' to Vercel Environment Variables and redeploy.");
+    // Robust check for the API key string
+    const apiKey = process.env.API_KEY;
+    if (!apiKey || apiKey === 'undefined' || apiKey === '' || apiKey.length < 10) {
+      console.error("CRITICAL ERROR: API_KEY is missing or invalid. Check Vercel Project Settings.");
       setKeyError(true);
     }
   }, []);
@@ -175,9 +177,10 @@ const App: React.FC = () => {
   };
 
   const logChat = useCallback(async (messages: Message[]) => {
-    if (profile.role === 'admin' || messages.length < 2 || !process.env.API_KEY) return;
+    const apiKey = process.env.API_KEY;
+    if (profile.role === 'admin' || messages.length < 2 || !apiKey || apiKey.length < 10) return;
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const ai = new GoogleGenAI({ apiKey });
       const lastFew = messages.slice(-4).map(m => `${m.role}: ${m.content}`).join('\n');
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
@@ -219,8 +222,8 @@ const App: React.FC = () => {
       )}
 
       {keyError && (
-        <div className="bg-red-500 text-white text-[10px] font-bold py-2 text-center relative z-[100] uppercase tracking-widest">
-           System Warning: AI Configuration Incomplete. Check Project Environment Variables.
+        <div className="bg-red-600 text-white text-[10px] font-black py-2 text-center relative z-[100] uppercase tracking-widest animate-pulse">
+           Nova AI Offline: Institutional API Key Missing. Please alert the administrator.
         </div>
       )}
 
