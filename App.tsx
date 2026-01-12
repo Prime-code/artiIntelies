@@ -5,9 +5,9 @@ import VoiceChat from './components/VoiceChat';
 import AdminDashboard from './components/AdminDashboard';
 import OnboardingOverlay from './components/modals/OnboardingOverlay';
 import AdminLoginModal from './components/modals/AdminLoginModal';
-import { GoogleGenAI } from "@google/genai";
 import { InteractionMode, UserProfile, Message, ChatLog, FeedbackLog, AppMode, AuditLog, SecuritySettings } from './types';
 import { SCHOOL_DETAILS, PLANS } from './constants';
+import { GoogleGenAI } from "@google/genai";
 
 const App: React.FC = () => {
   const [mode, setMode] = useState<InteractionMode>(InteractionMode.VOICE);
@@ -55,44 +55,6 @@ const App: React.FC = () => {
   });
 
   const [onboardingStep, setOnboardingStep] = useState<number>(0);
-  const [keyError, setKeyError] = useState(false);
-
-  // Safely check for API key status.
-  const checkKeyStatus = useCallback(async () => {
-    const apiKey = process.env.API_KEY;
-    // Check if the key is missing, undefined as a string, or simply too short.
-    const isBuildKeyMissing = !apiKey || apiKey === 'undefined' || apiKey === '' || apiKey.length < 5;
-    
-    if (isBuildKeyMissing) {
-      const win = window as any;
-      if (win.aistudio?.hasSelectedApiKey) {
-        const hasManualKey = await win.aistudio.hasSelectedApiKey();
-        if (hasManualKey) {
-          setKeyError(false);
-          return;
-        }
-      }
-      setKeyError(true);
-    } else {
-      setKeyError(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    checkKeyStatus();
-  }, [checkKeyStatus]);
-
-  // Handle manual key selection using the provided platform tool.
-  const handleManualKeySelection = async () => {
-    const win = window as any;
-    if (win.aistudio?.openSelectKey) {
-      await win.aistudio.openSelectKey();
-      // Assume success as per guidelines to avoid race condition delays
-      setKeyError(false);
-    } else {
-      alert("Note: Platform-level key selection is unavailable in this environment. If you are on Vercel, please add 'API_KEY' to your Environment Variables in the Vercel Dashboard and REDEPLOY the application.");
-    }
-  };
 
   useEffect(() => {
     if (profile.isAuthenticated) {
@@ -246,34 +208,6 @@ const App: React.FC = () => {
           step={onboardingStep} setStep={setOnboardingStep}
           profile={profile} setProfile={setProfile}
         />
-      )}
-
-      {keyError && (
-        <div className="bg-red-600/95 backdrop-blur-md text-white py-4 px-6 flex flex-col items-center justify-center gap-4 relative z-[100] border-b border-white/10 shadow-2xl">
-           <div className="flex items-center gap-4">
-             <i className="fas fa-triangle-exclamation text-2xl animate-pulse"></i>
-             <div className="text-center md:text-left">
-               <span className="text-[11px] font-black uppercase tracking-widest block">Institutional Link Pending</span>
-               <span className="text-[9px] opacity-70 block">The API Key 'API_KEY' was not found in the application environment.</span>
-             </div>
-           </div>
-           <div className="flex gap-4">
-             <button 
-               onClick={handleManualKeySelection}
-               className="bg-white text-nova-navy px-8 py-2 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-nova-gold transition-all shadow-xl"
-             >
-               Authorize Nova AI Link
-             </button>
-             <a 
-               href="https://ai.google.dev/gemini-api/docs/billing" 
-               target="_blank" 
-               rel="noopener noreferrer"
-               className="text-[9px] font-bold underline opacity-80 hover:opacity-100 flex items-center"
-             >
-               View Billing Info
-             </a>
-           </div>
-        </div>
       )}
 
       <header className="p-10 flex justify-between items-center relative z-50">

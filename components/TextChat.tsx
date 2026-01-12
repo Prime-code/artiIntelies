@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Modality } from "@google/genai";
 import ReactMarkdown from 'react-markdown';
 import { Message, UserProfile, AppMode } from '../types';
 import { NOVA_AI_SYSTEM_INSTRUCTION } from '../constants';
+import { decode, decodeAudioData } from '../services/audioUtils';
 
 const MessageBubble: React.FC<{ msg: Message; userName: string }> = ({ msg, userName }) => (
   <div className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
@@ -16,7 +17,6 @@ const MessageBubble: React.FC<{ msg: Message; userName: string }> = ({ msg, user
           : 'bg-nova-gold/5 border-nova-gold/10 rounded-bl-none'
       }`}>
         <div className="markdown-content"><ReactMarkdown>{msg.content}</ReactMarkdown></div>
-        {/* Adhering to Google Search Grounding guidelines: list extracted URLs */}
         {msg.sources && msg.sources.length > 0 && (
           <div className="mt-4 pt-4 border-t border-white/5 space-y-2">
             <p className="text-[8px] font-black uppercase tracking-widest opacity-30">Sources:</p>
@@ -56,14 +56,61 @@ const TextChat: React.FC<TextChatProps> = ({ userProfile, appMode, onLog, onDedu
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
+  const generateSpeech = async (text: string) => {
+    try {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+      }
+      
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash-preview-tts",
+        contents: [{ parts: [{ text: `Say naturally: ${text}` }] }],
+        config: {
+          responseModalities: [Modality.AUDIO],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName: 'Zephyr' },
+            },
+          },
+        },
+      });
+
+      const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+      if (base64Audio && audioContextRef.current) {
+        if (audioContextRef.current.state === 'suspended') {
+          await audioContextRef.current.resume();
+        }
+        const audioBuffer = await decodeAudioData(
+          decode(base64Audio),
+          audioContextRef.current,
+          24000,
+          1,
+        );
+        const source = audioContextRef.current.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(audioContextRef.current.destination);
+        source.start();
+      }
+    } catch (err) {
+      console.error("Nova AI TTS Error:", err);
+    }
+  };
+
   const handleSend = async () => {
     if (!input.trim() || isTyping) return;
     
+    // Ensure audio context is ready on first user interaction
+    if (!audioContextRef.current) {
+      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+    }
+
     onDeduct(input.trim().split(/\s+/).length);
     const userMessage: Message = { role: 'user', content: input, timestamp: Date.now() };
     const newMessages = [...messages, userMessage];
@@ -72,22 +119,18 @@ const TextChat: React.FC<TextChatProps> = ({ userProfile, appMode, onLog, onDedu
     setIsTyping(true);
 
     try {
-      // Create a new GoogleGenAI instance right before making an API call
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      // Using string contents for text generation as per guidelines
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: input,
         config: { 
-          systemInstruction: NOVA_AI_SYSTEM_INSTRUCTION, 
+          systemInstruction: NOVA_AI_SYSTEM_INSTRUCTION + `\nUser's name is ${userProfile.name}.`, 
           tools: [{ googleSearch: {} }] 
         }
       });
 
-      // Extracting text output property as per guidelines
-      const textOutput = response.text || "Thinking...";
+      const textOutput = response.text || "I'm processing that.";
       
-      // Mandatory: Extract website URLs from groundingChunks when using Google Search grounding
       const sources: Array<{ title: string; uri: string }> = [];
       const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
       if (groundingChunks) {
@@ -108,12 +151,17 @@ const TextChat: React.FC<TextChatProps> = ({ userProfile, appMode, onLog, onDedu
         timestamp: Date.now(),
         sources: sources.length > 0 ? sources : undefined
       };
+      
       const finalMessages = [...newMessages, aiMessage];
       setMessages(finalMessages);
       if (onLog) onLog(finalMessages);
+
+      // Trigger speech generation
+      generateSpeech(textOutput);
+
     } catch (e) {
       console.error("Nova AI Chat Error:", e);
-      setMessages(prev => [...prev, { role: 'assistant', content: "Connection error. Check console and API key.", timestamp: Date.now() }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: "An error occurred with the institutional link. Please verify the environment configuration.", timestamp: Date.now() }]);
     } finally {
       setIsTyping(false);
     }
@@ -134,7 +182,7 @@ const TextChat: React.FC<TextChatProps> = ({ userProfile, appMode, onLog, onDedu
           <input 
             type="text" value={input} onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Type your query..."
+            placeholder="Query Nova AI..."
             className="flex-1 bg-transparent px-8 py-4 focus:outline-none text-sm text-white"
           />
           <button onClick={handleSend} disabled={isTyping} className="w-12 h-12 rounded-full bg-nova-gold text-nova-navy flex items-center justify-center transition-all hover:scale-105 active:scale-95">
