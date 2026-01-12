@@ -76,39 +76,31 @@
       filter: drop-shadow(0 0 15px #D4AF37);
     }
 
-    /* Enhanced Scrollbar for better UX */
-    .custom-scrollbar::-webkit-scrollbar { 
-      width: 6px; 
-    }
-    .custom-scrollbar::-webkit-scrollbar-track {
-      background: transparent;
-    }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
     .custom-scrollbar::-webkit-scrollbar-thumb { 
       background: rgba(255, 255, 255, 0.1); 
       border-radius: 10px; 
-      transition: background 0.3s ease;
     }
-    .custom-scrollbar:hover::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.2);
-    }
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-      background: rgba(212, 175, 87, 0.4);
-    }
+    .custom-scrollbar:hover::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); }
   </style>
-  <script type="importmap">
+<script type="importmap">
 {
   "imports": {
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom": "https://esm.sh/react-dom@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react-markdown": "https://esm.sh/react-markdown@^9.0.0",
     "@google/genai": "https://esm.sh/@google/genai@^1.35.0",
-    "react/": "https://esm.sh/react@^19.2.3/"
+    "vite": "https://esm.sh/vite@^7.3.1",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react-markdown": "https://esm.sh/react-markdown@^10.1.0",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
   }
 }
 </script>
 </head>
 <body class="mesh-gradient min-h-screen">
   <div id="root"></div>
+  <!-- CRITICAL: Added entry point script for Vite deployment -->
+  <script type="module" src="/index.tsx"></script>
 </body>
 </html>
