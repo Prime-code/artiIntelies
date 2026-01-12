@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import Auth from './components/Auth';
 import TextChat from './components/TextChat';
@@ -9,10 +8,6 @@ import AdminLoginModal from './components/modals/AdminLoginModal';
 import { GoogleGenAI } from "@google/genai";
 import { InteractionMode, UserProfile, Message, ChatLog, FeedbackLog, AppMode, AuditLog, SecuritySettings } from './types';
 import { SCHOOL_DETAILS, PLANS } from './constants';
-
-// Removed redundant AIStudio interface and Window augmentation to resolve 
-// "Subsequent property declarations must have the same type" error.
-// The environment provides the global window.aistudio definition.
 
 const App: React.FC = () => {
   const [mode, setMode] = useState<InteractionMode>(InteractionMode.VOICE);
@@ -62,17 +57,15 @@ const App: React.FC = () => {
   const [onboardingStep, setOnboardingStep] = useState<number>(0);
   const [keyError, setKeyError] = useState(false);
 
-  // Safely check for API key status, assuming window.aistudio is provided by the context.
+  // Safely check for API key status.
   const checkKeyStatus = useCallback(async () => {
     const apiKey = process.env.API_KEY;
     // Check if the key is missing, undefined as a string, or simply too short.
     const isBuildKeyMissing = !apiKey || apiKey === 'undefined' || apiKey === '' || apiKey.length < 5;
     
     if (isBuildKeyMissing) {
-      // If window.aistudio exists, check if a manual key was selected in the environment.
-      // Accessing as any to bypass potential remaining global definition conflicts.
       const win = window as any;
-      if (win.aistudio) {
+      if (win.aistudio?.hasSelectedApiKey) {
         const hasManualKey = await win.aistudio.hasSelectedApiKey();
         if (hasManualKey) {
           setKeyError(false);
@@ -94,9 +87,10 @@ const App: React.FC = () => {
     const win = window as any;
     if (win.aistudio?.openSelectKey) {
       await win.aistudio.openSelectKey();
+      // Assume success as per guidelines to avoid race condition delays
       setKeyError(false);
     } else {
-      alert("Manual authorization is only available when running inside the supported platform frame. For Vercel deployments, please add 'API_KEY' to your Project Environment Variables and REDEPLOY.");
+      alert("Note: Platform-level key selection is unavailable in this environment. If you are on Vercel, please add 'API_KEY' to your Environment Variables in the Vercel Dashboard and REDEPLOY the application.");
     }
   };
 
@@ -259,8 +253,8 @@ const App: React.FC = () => {
            <div className="flex items-center gap-4">
              <i className="fas fa-triangle-exclamation text-2xl animate-pulse"></i>
              <div className="text-center md:text-left">
-               <span className="text-[11px] font-black uppercase tracking-widest block">Vercel API Key Required</span>
-               <span className="text-[9px] opacity-70 block">Vite was unable to find 'API_KEY' in your environment during the build.</span>
+               <span className="text-[11px] font-black uppercase tracking-widest block">Institutional Link Pending</span>
+               <span className="text-[9px] opacity-70 block">The API Key 'API_KEY' was not found in the application environment.</span>
              </div>
            </div>
            <div className="flex gap-4">
@@ -268,7 +262,7 @@ const App: React.FC = () => {
                onClick={handleManualKeySelection}
                className="bg-white text-nova-navy px-8 py-2 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-nova-gold transition-all shadow-xl"
              >
-               Retry Authorization
+               Authorize Nova AI Link
              </button>
              <a 
                href="https://ai.google.dev/gemini-api/docs/billing" 
