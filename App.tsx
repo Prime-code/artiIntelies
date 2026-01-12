@@ -58,12 +58,12 @@ const App: React.FC = () => {
   const [keyError, setKeyError] = useState(false);
 
   useEffect(() => {
-    // Check if process.env.API_KEY was successfully replaced by Vite during build
+    // Robust check for the API key string
     const apiKey = process.env.API_KEY;
-    const isMissing = !apiKey || apiKey === 'undefined' || apiKey === '' || apiKey.length < 10;
+    const isMissing = !apiKey || apiKey === 'undefined' || apiKey === '' || apiKey.length < 5;
     
     if (isMissing) {
-      console.error("CRITICAL ERROR: API_KEY is missing or invalid. Ensure you have added 'API_KEY' to your Vercel Environment Variables and triggered a fresh build.");
+      console.error("CRITICAL ERROR: API_KEY is missing or invalid. Check Vercel Project Settings.");
       setKeyError(true);
     } else {
       setKeyError(false);
@@ -181,7 +181,7 @@ const App: React.FC = () => {
 
   const logChat = useCallback(async (messages: Message[]) => {
     const apiKey = process.env.API_KEY;
-    if (profile.role === 'admin' || messages.length < 2 || !apiKey || apiKey.length < 10) return;
+    if (profile.role === 'admin' || messages.length < 2 || !apiKey || apiKey.length < 5) return;
     try {
       const ai = new GoogleGenAI({ apiKey });
       const lastFew = messages.slice(-4).map(m => `${m.role}: ${m.content}`).join('\n');
