@@ -55,23 +55,40 @@ const TextChat: React.FC<TextChatProps> = ({ userProfile, appMode, onLog, onDedu
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const currentSourceRef = useRef<AudioBufferSourceNode | null>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
+  // Ensure AudioContext is initialized and resumed
+  const ensureAudioContext = async () => {
+    if (!audioContextRef.current) {
+      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+    }
+    if (audioContextRef.current.state === 'suspended') {
+      await audioContextRef.current.resume();
+    }
+    return audioContextRef.current;
+  };
+
   const generateSpeech = async (text: string) => {
     try {
-      if (!audioContextRef.current) {
-        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-      }
+      setIsSpeaking(true);
+      const ctx = await ensureAudioContext();
       
+      // Stop current speech if any
+      if (currentSourceRef.current) {
+        currentSourceRef.current.stop();
+      }
+
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash-preview-tts",
-        contents: [{ parts: [{ text: `Say naturally: ${text}` }] }],
+        contents: [{ parts: [{ text: text }] }],
         config: {
           responseModalities: [Modality.AUDIO],
           speechConfig: {
@@ -83,33 +100,33 @@ const TextChat: React.FC<TextChatProps> = ({ userProfile, appMode, onLog, onDedu
       });
 
       const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-      if (base64Audio && audioContextRef.current) {
-        if (audioContextRef.current.state === 'suspended') {
-          await audioContextRef.current.resume();
-        }
+      if (base64Audio) {
         const audioBuffer = await decodeAudioData(
           decode(base64Audio),
-          audioContextRef.current,
+          ctx,
           24000,
           1,
         );
-        const source = audioContextRef.current.createBufferSource();
+        const source = ctx.createBufferSource();
         source.buffer = audioBuffer;
-        source.connect(audioContextRef.current.destination);
+        source.connect(ctx.destination);
+        source.onended = () => setIsSpeaking(false);
+        currentSourceRef.current = source;
         source.start();
+      } else {
+        setIsSpeaking(false);
       }
     } catch (err) {
       console.error("Nova AI TTS Error:", err);
+      setIsSpeaking(false);
     }
   };
 
   const handleSend = async () => {
     if (!input.trim() || isTyping) return;
     
-    // Ensure audio context is ready on first user interaction
-    if (!audioContextRef.current) {
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-    }
+    // Resume context on user interaction
+    await ensureAudioContext();
 
     onDeduct(input.trim().split(/\s+/).length);
     const userMessage: Message = { role: 'user', content: input, timestamp: Date.now() };
@@ -156,12 +173,12 @@ const TextChat: React.FC<TextChatProps> = ({ userProfile, appMode, onLog, onDedu
       setMessages(finalMessages);
       if (onLog) onLog(finalMessages);
 
-      // Trigger speech generation
+      // Trigger text-to-speech for assistant response
       generateSpeech(textOutput);
 
     } catch (e) {
       console.error("Nova AI Chat Error:", e);
-      setMessages(prev => [...prev, { role: 'assistant', content: "An error occurred with the institutional link. Please verify the environment configuration.", timestamp: Date.now() }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: "An error occurred. Please verify connectivity.", timestamp: Date.now() }]);
     } finally {
       setIsTyping(false);
     }
@@ -174,6 +191,7 @@ const TextChat: React.FC<TextChatProps> = ({ userProfile, appMode, onLog, onDedu
           <MessageBubble key={idx} msg={msg} userName={userProfile.name} />
         ))}
         {isTyping && <div className="text-[10px] font-bold text-nova-gold/40 animate-pulse ml-2">Nova AI is thinking...</div>}
+        {isSpeaking && <div className="text-[10px] font-bold text-nova-gold animate-pulse ml-2"><i className="fas fa-volume-up mr-2"></i>Nova AI is speaking...</div>}
         <div ref={messagesEndRef} className="h-4" />
       </div>
 
