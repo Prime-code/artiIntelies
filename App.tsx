@@ -58,6 +58,12 @@ const App: React.FC = () => {
   const [onboardingStep, setOnboardingStep] = useState<number>(0);
 
   useEffect(() => {
+    if (!process.env.API_KEY) {
+      console.error("NOVA AI ERROR: API_KEY is missing. Check Vercel environment variables.");
+    }
+  }, []);
+
+  useEffect(() => {
     if (profile.isAuthenticated) {
       setOnboardingStep((profile.name && profile.type) ? 3 : 0);
     }
@@ -177,7 +183,9 @@ const App: React.FC = () => {
       });
       const summary = response.text?.trim() || "Active session.";
       setAllChats(prev => [{ userName: profile.name, messages, timestamp: Date.now(), summary }, ...prev]);
-    } catch (e) {}
+    } catch (e) {
+      console.error("Chat summary error:", e);
+    }
   }, [profile.name, profile.role]);
 
   const deductCredits = (wordCount: number) => {

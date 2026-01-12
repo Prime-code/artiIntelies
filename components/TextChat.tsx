@@ -70,7 +70,8 @@ const TextChat: React.FC<TextChatProps> = ({ userProfile, appMode, onLog, onDedu
       setMessages(finalMessages);
       if (onLog) onLog(finalMessages);
     } catch (e) {
-      setMessages(prev => [...prev, { role: 'assistant', content: "Error connecting...", timestamp: Date.now() }]);
+      console.error("Nova AI Chat Error:", e);
+      setMessages(prev => [...prev, { role: 'assistant', content: "Connection error. Check console and API key.", timestamp: Date.now() }]);
     } finally {
       setIsTyping(false);
     }

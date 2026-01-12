@@ -96,6 +96,7 @@ const VoiceChat: React.FC<VoiceChatProps> = ({ userProfile, appMode, onFeedback,
       const isExhausted = userProfile.credits <= 0 && userProfile.role !== 'admin' && appMode === 'paid';
       if (isExhausted) return;
 
+      setError(null);
       setStatus('connecting');
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -111,6 +112,7 @@ const VoiceChat: React.FC<VoiceChatProps> = ({ userProfile, appMode, onFeedback,
         model: 'gemini-2.5-flash-native-audio-preview-12-2025',
         callbacks: {
           onopen: () => {
+            console.debug('Nova AI Voice Session Opened');
             setStatus('listening');
             const scriptProcessor = audioCtx.createScriptProcessor(4096, 1, 1);
             scriptProcessor.onaudioprocess = (e) => {
@@ -145,11 +147,12 @@ const VoiceChat: React.FC<VoiceChatProps> = ({ userProfile, appMode, onFeedback,
             }
           },
           onerror: (e) => {
-            console.error('Session error:', e);
+            console.error('Nova AI Voice Session Error:', e);
+            setError('Connection lost. Check API key and internet.');
             stopSession();
           },
           onclose: (e) => {
-            console.debug('Session closed:', e);
+            console.debug('Nova AI Voice Session Closed:', e);
             stopSession();
           }
         },
@@ -163,8 +166,8 @@ const VoiceChat: React.FC<VoiceChatProps> = ({ userProfile, appMode, onFeedback,
       sessionRef.current = await sessionPromise;
       drawVisualizer();
     } catch (e) { 
-      console.error('Start session error:', e);
-      setError('Mic error or connection failure'); 
+      console.error('Nova AI Voice Start error:', e);
+      setError(`Permission denied or invalid key. (Check console)`); 
       setStatus('idle'); 
     }
   };
@@ -181,7 +184,7 @@ const VoiceChat: React.FC<VoiceChatProps> = ({ userProfile, appMode, onFeedback,
       <div className="text-center space-y-4 max-w-xl px-10">
         <h3 className="text-xs font-black uppercase tracking-[0.3em] opacity-40">{status.toUpperCase()}</h3>
         {transcription && <p className="text-sm font-light italic text-white/60">"{transcription}"</p>}
-        {error && <p className="text-xs text-red-500">{error}</p>}
+        {error && <p className="text-xs text-red-500 font-bold bg-red-500/10 p-4 rounded-2xl border border-red-500/20">{error}</p>}
       </div>
     </div>
   );
