@@ -73,7 +73,6 @@ const VoiceChat: React.FC<VoiceChatProps> = ({ userProfile, appMode, onFeedback,
       sessionRef.current = null;
     }
 
-    // Safely close AudioContexts
     [audioContextRef.current, outputAudioContextRef.current].forEach(ctx => {
       if (ctx && ctx.state !== 'closed') {
         ctx.close().catch(err => console.debug('Error closing context:', err));
@@ -82,13 +81,10 @@ const VoiceChat: React.FC<VoiceChatProps> = ({ userProfile, appMode, onFeedback,
     audioContextRef.current = null;
     outputAudioContextRef.current = null;
 
-    // Stop and clear sources
     sourcesRef.current.forEach(s => {
       try {
         s.stop();
-      } catch (e) {
-        // Source might not have started or already stopped
-      }
+      } catch (e) {}
     });
     sourcesRef.current.clear();
     
@@ -127,7 +123,7 @@ const VoiceChat: React.FC<VoiceChatProps> = ({ userProfile, appMode, onFeedback,
           },
           onmessage: async (message: LiveServerMessage) => {
             if (message.serverContent?.outputTranscription) {
-              const text = message.serverContent.outputTranscription.text;
+              const text = message.serverContent.outputTranscription.text ?? '';
               setTranscription(text);
               onDeduct(text.split(/\s+/).length);
             }
