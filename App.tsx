@@ -56,10 +56,12 @@ const App: React.FC = () => {
   });
 
   const [onboardingStep, setOnboardingStep] = useState<number>(0);
+  const [keyError, setKeyError] = useState(false);
 
   useEffect(() => {
-    if (!process.env.API_KEY) {
-      console.error("NOVA AI ERROR: API_KEY is missing. Check Vercel environment variables.");
+    if (!process.env.API_KEY || process.env.API_KEY === 'undefined' || process.env.API_KEY === '') {
+      console.error("NOVA AI ERROR: API_KEY is missing. Add 'API_KEY' to Vercel Environment Variables and redeploy.");
+      setKeyError(true);
     }
   }, []);
 
@@ -173,7 +175,7 @@ const App: React.FC = () => {
   };
 
   const logChat = useCallback(async (messages: Message[]) => {
-    if (profile.role === 'admin' || messages.length < 2) return;
+    if (profile.role === 'admin' || messages.length < 2 || !process.env.API_KEY) return;
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const lastFew = messages.slice(-4).map(m => `${m.role}: ${m.content}`).join('\n');
@@ -214,6 +216,12 @@ const App: React.FC = () => {
           step={onboardingStep} setStep={setOnboardingStep}
           profile={profile} setProfile={setProfile}
         />
+      )}
+
+      {keyError && (
+        <div className="bg-red-500 text-white text-[10px] font-bold py-2 text-center relative z-[100] uppercase tracking-widest">
+           System Warning: AI Configuration Incomplete. Check Project Environment Variables.
+        </div>
       )}
 
       <header className="p-10 flex justify-between items-center relative z-50">
