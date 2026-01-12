@@ -25,6 +25,10 @@ const VoiceChat: React.FC<VoiceChatProps> = ({ userProfile, appMode, onFeedback,
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | null>(null);
 
+  // Use refs for transcription to avoid closure issues and track full turn text
+  const currentInputTranscription = useRef('');
+  const currentOutputTranscription = useRef('');
+
   const drawVisualizer = useCallback(() => {
     if (!canvasRef.current || !analyzerRef.current) return;
     const canvas = canvasRef.current;
@@ -93,6 +97,8 @@ const VoiceChat: React.FC<VoiceChatProps> = ({ userProfile, appMode, onFeedback,
 
       setError(null);
       setStatus('connecting');
+      
+      // Create a new GoogleGenAI instance right before making an API call
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const audioCtx = new AudioContext({ sampleRate: 16000 });
@@ -113,6 +119,7 @@ const VoiceChat: React.FC<VoiceChatProps> = ({ userProfile, appMode, onFeedback,
             scriptProcessor.onaudioprocess = (e) => {
               const inputData = e.inputBuffer.getChannelData(0);
               const pcmBlob = createBlob(inputData);
+              // CRITICAL: Solely rely on sessionPromise resolves and then call `session.sendRealtimeInput`
               sessionPromise.then((session) => {
                 session.sendRealtimeInput({ media: pcmBlob });
               });
@@ -121,33 +128,52 @@ const VoiceChat: React.FC<VoiceChatProps> = ({ userProfile, appMode, onFeedback,
             scriptProcessor.connect(audioCtx.destination);
           },
           onmessage: async (message: LiveServerMessage) => {
+            // Audio Transcription Handling as per guidelines
             if (message.serverContent?.outputTranscription) {
               const text = message.serverContent.outputTranscription.text ?? '';
-              setTranscription(text);
-              onDeduct(text.split(/\s+/).length);
+              currentOutputTranscription.current += text;
+              setTranscription(currentOutputTranscription.current);
+            } else if (message.serverContent?.inputTranscription) {
+              const text = message.serverContent.inputTranscription.text ?? '';
+              currentInputTranscription.current += text;
+            }
+
+            if (message.serverContent?.turnComplete) {
+              // Finalize deduction when turn is complete
+              const finalOut = currentOutputTranscription.current;
+              const finalIn = currentInputTranscription.current;
+              const totalWords = (finalOut.split(/\s+/).length) + (finalIn.split(/\s+/).length);
+              onDeduct(totalWords);
+              
+              currentInputTranscription.current = '';
+              currentOutputTranscription.current = '';
+              // Optional: Clear UI transcription or keep it for a moment
             }
             
+            // Audio Output Processing as per guidelines
             const audioData = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
             if (audioData) {
               setStatus('speaking');
               nextStartTimeRef.current = Math.max(nextStartTimeRef.current, outputCtx.currentTime);
+              // Decoding logic must be manually implemented for raw PCM streams
               const buffer = await decodeAudioData(decode(audioData), outputCtx, 24000, 1);
-              const node = outputCtx.createBufferSource();
-              node.buffer = buffer;
-              node.connect(outputCtx.destination);
-              node.addEventListener('ended', () => {
-                sourcesRef.current.delete(node);
+              const sourceNode = outputCtx.createBufferSource();
+              sourceNode.buffer = buffer;
+              sourceNode.connect(outputCtx.destination);
+              sourceNode.addEventListener('ended', () => {
+                sourcesRef.current.delete(sourceNode);
                 if (sourcesRef.current.size === 0) setStatus('listening');
               });
-              node.start(nextStartTimeRef.current);
+
+              sourceNode.start(nextStartTimeRef.current);
               nextStartTimeRef.current += buffer.duration;
-              sourcesRef.current.add(node);
+              sourcesRef.current.add(sourceNode);
             }
 
             if (message.serverContent?.interrupted) {
-              sourcesRef.current.forEach(s => {
+              for (const s of sourcesRef.current) {
                 try { s.stop(); } catch (e) {}
-              });
+              }
               sourcesRef.current.clear();
               nextStartTimeRef.current = 0;
             }
@@ -163,10 +189,13 @@ const VoiceChat: React.FC<VoiceChatProps> = ({ userProfile, appMode, onFeedback,
           }
         },
         config: {
-          responseModalities: [Modality.AUDIO],
+          responseModalities: [Modality.AUDIO], // Must contain exactly Modality.AUDIO
           systemInstruction: NOVA_AI_SYSTEM_INSTRUCTION + `\n\nCONTEXT: User Name: ${userProfile.name}, User Type: ${userProfile.type}. Always prioritize current school admission data.`,
-          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } },
-          inputAudioTranscription: {}, outputAudioTranscription: {}
+          speechConfig: { 
+            voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } 
+          },
+          inputAudioTranscription: {}, 
+          outputAudioTranscription: {}
         }
       });
 

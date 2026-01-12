@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import ReactMarkdown from 'react-markdown';
@@ -17,6 +16,23 @@ const MessageBubble: React.FC<{ msg: Message; userName: string }> = ({ msg, user
           : 'bg-nova-gold/5 border-nova-gold/10 rounded-bl-none'
       }`}>
         <div className="markdown-content"><ReactMarkdown>{msg.content}</ReactMarkdown></div>
+        {/* Adhering to Google Search Grounding guidelines: list extracted URLs */}
+        {msg.sources && msg.sources.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-white/5 space-y-2">
+            <p className="text-[8px] font-black uppercase tracking-widest opacity-30">Sources:</p>
+            {msg.sources.map((source, idx) => (
+              <a 
+                key={idx} 
+                href={source.uri} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="block text-[10px] text-nova-gold hover:underline truncate"
+              >
+                {source.title || source.uri}
+              </a>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   </div>
@@ -56,16 +72,42 @@ const TextChat: React.FC<TextChatProps> = ({ userProfile, appMode, onLog, onDedu
     setIsTyping(true);
 
     try {
+      // Create a new GoogleGenAI instance right before making an API call
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      // Using string contents for text generation as per guidelines
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: [{ role: 'user', parts: [{ text: input }] }],
-        config: { systemInstruction: NOVA_AI_SYSTEM_INSTRUCTION, tools: [{ googleSearch: {} }] }
+        contents: input,
+        config: { 
+          systemInstruction: NOVA_AI_SYSTEM_INSTRUCTION, 
+          tools: [{ googleSearch: {} }] 
+        }
       });
 
+      // Extracting text output property as per guidelines
       const textOutput = response.text || "Thinking...";
+      
+      // Mandatory: Extract website URLs from groundingChunks when using Google Search grounding
+      const sources: Array<{ title: string; uri: string }> = [];
+      const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
+      if (groundingChunks) {
+        groundingChunks.forEach((chunk: any) => {
+          if (chunk.web) {
+            sources.push({
+              title: chunk.web.title || chunk.web.uri,
+              uri: chunk.web.uri,
+            });
+          }
+        });
+      }
+
       onDeduct(textOutput.trim().split(/\s+/).length);
-      const aiMessage: Message = { role: 'assistant', content: textOutput, timestamp: Date.now() };
+      const aiMessage: Message = { 
+        role: 'assistant', 
+        content: textOutput, 
+        timestamp: Date.now(),
+        sources: sources.length > 0 ? sources : undefined
+      };
       const finalMessages = [...newMessages, aiMessage];
       setMessages(finalMessages);
       if (onLog) onLog(finalMessages);

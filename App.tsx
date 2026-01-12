@@ -58,12 +58,12 @@ const App: React.FC = () => {
   const [keyError, setKeyError] = useState(false);
 
   useEffect(() => {
-    // Robust check for the API key string
+    // Robust check for the API key string injected by Vite
     const apiKey = process.env.API_KEY;
     const isMissing = !apiKey || apiKey === 'undefined' || apiKey === '' || apiKey.length < 5;
     
     if (isMissing) {
-      console.error("CRITICAL ERROR: API_KEY is missing or invalid. Check Vercel Project Settings.");
+      console.error("NOVA AI SECURITY ALERT: API_KEY is not detected in the current build. Please ensure 'API_KEY' is set in your Vercel Project Environment Variables and trigger a new deployment.");
       setKeyError(true);
     } else {
       setKeyError(false);
@@ -183,12 +183,15 @@ const App: React.FC = () => {
     const apiKey = process.env.API_KEY;
     if (profile.role === 'admin' || messages.length < 2 || !apiKey || apiKey.length < 5) return;
     try {
+      // Create a new GoogleGenAI instance right before making an API call
       const ai = new GoogleGenAI({ apiKey });
       const lastFew = messages.slice(-4).map(m => `${m.role}: ${m.content}`).join('\n');
+      // When using generate content for text answers, use string contents as per guidelines
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: [{ role: 'user', parts: [{ text: `Summarize in one short sentence: \n\n${lastFew}` }] }],
+        contents: `Summarize in one short sentence: \n\n${lastFew}`,
       });
+      // Correct extraction of text output from GenerateContentResponse
       const summary = response.text?.trim() || "Active session.";
       setAllChats(prev => [{ userName: profile.name, messages, timestamp: Date.now(), summary }, ...prev]);
     } catch (e) {
