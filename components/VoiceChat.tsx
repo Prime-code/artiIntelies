@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { GoogleGenAI, Modality, LiveServerMessage } from '@google/genai';
 import { UserProfile, AppMode } from '../types';
@@ -21,7 +20,7 @@ const VoiceChat: React.FC<VoiceChatProps> = ({ userProfile, appMode, onFeedback,
   const outputAudioContextRef = useRef<AudioContext | null>(null);
   const nextStartTimeRef = useRef<number>(0);
   const sourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
-  const sessionRef = useRef<any>(null);
+  const sessionPromiseRef = useRef<Promise<any> | null>(null);
   const analyzerRef = useRef<AnalyserNode | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | null>(null);
@@ -64,13 +63,11 @@ const VoiceChat: React.FC<VoiceChatProps> = ({ userProfile, appMode, onFeedback,
       animationRef.current = null;
     }
     
-    if (sessionRef.current) {
-      try {
-        sessionRef.current.close();
-      } catch (e) {
-        console.debug('Session already closed');
-      }
-      sessionRef.current = null;
+    if (sessionPromiseRef.current) {
+      sessionPromiseRef.current.then(session => {
+        try { session.close(); } catch (e) {}
+      });
+      sessionPromiseRef.current = null;
     }
 
     [audioContextRef.current, outputAudioContextRef.current].forEach(ctx => {
@@ -82,12 +79,10 @@ const VoiceChat: React.FC<VoiceChatProps> = ({ userProfile, appMode, onFeedback,
     outputAudioContextRef.current = null;
 
     sourcesRef.current.forEach(s => {
-      try {
-        s.stop();
-      } catch (e) {}
+      try { s.stop(); } catch (e) {}
     });
     sourcesRef.current.clear();
-    
+    nextStartTimeRef.current = 0;
     setStatus('idle');
   }, []);
 
@@ -116,9 +111,11 @@ const VoiceChat: React.FC<VoiceChatProps> = ({ userProfile, appMode, onFeedback,
             setStatus('listening');
             const scriptProcessor = audioCtx.createScriptProcessor(4096, 1, 1);
             scriptProcessor.onaudioprocess = (e) => {
-              if (sessionRef.current) {
-                sessionRef.current.sendRealtimeInput({ media: createBlob(e.inputBuffer.getChannelData(0)) });
-              }
+              const inputData = e.inputBuffer.getChannelData(0);
+              const pcmBlob = createBlob(inputData);
+              sessionPromise.then((session) => {
+                session.sendRealtimeInput({ media: pcmBlob });
+              });
             };
             source.connect(scriptProcessor);
             scriptProcessor.connect(audioCtx.destination);
@@ -129,45 +126,55 @@ const VoiceChat: React.FC<VoiceChatProps> = ({ userProfile, appMode, onFeedback,
               setTranscription(text);
               onDeduct(text.split(/\s+/).length);
             }
+            
             const audioData = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
             if (audioData) {
               setStatus('speaking');
+              nextStartTimeRef.current = Math.max(nextStartTimeRef.current, outputCtx.currentTime);
               const buffer = await decodeAudioData(decode(audioData), outputCtx, 24000, 1);
               const node = outputCtx.createBufferSource();
               node.buffer = buffer;
               node.connect(outputCtx.destination);
-              node.onended = () => {
+              node.addEventListener('ended', () => {
                 sourcesRef.current.delete(node);
                 if (sourcesRef.current.size === 0) setStatus('listening');
-              };
-              nextStartTimeRef.current = Math.max(nextStartTimeRef.current, outputCtx.currentTime);
+              });
               node.start(nextStartTimeRef.current);
               nextStartTimeRef.current += buffer.duration;
               sourcesRef.current.add(node);
             }
+
+            if (message.serverContent?.interrupted) {
+              sourcesRef.current.forEach(s => {
+                try { s.stop(); } catch (e) {}
+              });
+              sourcesRef.current.clear();
+              nextStartTimeRef.current = 0;
+            }
           },
           onerror: (e) => {
             console.error('Nova AI Voice Session Error:', e);
-            setError('Connection lost. Check API key and internet.');
+            setError('Institutional link interrupted. Please verify key.');
             stopSession();
           },
           onclose: (e) => {
-            console.debug('Nova AI Voice Session Closed:', e);
+            console.debug('Nova AI Voice Session Closed');
             stopSession();
           }
         },
         config: {
           responseModalities: [Modality.AUDIO],
-          systemInstruction: NOVA_AI_SYSTEM_INSTRUCTION + `\n\nCONTEXT: User Name: ${userProfile.name}, User Type: ${userProfile.type}.`,
+          systemInstruction: NOVA_AI_SYSTEM_INSTRUCTION + `\n\nCONTEXT: User Name: ${userProfile.name}, User Type: ${userProfile.type}. Always prioritize current school admission data.`,
           speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } },
           inputAudioTranscription: {}, outputAudioTranscription: {}
         }
       });
-      sessionRef.current = await sessionPromise;
+
+      sessionPromiseRef.current = sessionPromise;
       drawVisualizer();
     } catch (e) { 
       console.error('Nova AI Voice Start error:', e);
-      setError(`Permission denied or invalid key. (Check console)`); 
+      setError(`Access denied. Check microphone permissions and API settings.`); 
       setStatus('idle'); 
     }
   };
@@ -176,15 +183,26 @@ const VoiceChat: React.FC<VoiceChatProps> = ({ userProfile, appMode, onFeedback,
     <div className="flex flex-col items-center justify-center space-y-12 py-10">
       <div className="relative flex items-center justify-center">
         <canvas ref={canvasRef} width={400} height={400} className="relative z-10 opacity-60" />
-        <button onClick={status === 'idle' ? startSession : stopSession} className={`absolute z-20 w-32 h-32 rounded-full flex flex-col items-center justify-center transition-all duration-500 ${status === 'idle' ? 'glass hover:bg-white/10' : 'bg-nova-gold text-nova-navy shadow-2xl shadow-nova-gold/20'}`}>
+        <button 
+          onClick={status === 'idle' ? startSession : stopSession} 
+          className={`absolute z-20 w-32 h-32 rounded-full flex flex-col items-center justify-center transition-all duration-500 ${status === 'idle' ? 'glass hover:bg-white/10' : 'bg-nova-gold text-nova-navy shadow-2xl shadow-nova-gold/20 scale-110'}`}
+        >
           <i className={`fas ${status === 'idle' ? 'fa-microphone text-3xl mb-2' : 'fa-stop text-3xl mb-2'}`}></i>
-          <span className="text-[8px] font-black uppercase tracking-widest">{status === 'idle' ? 'Talk' : 'Stop'}</span>
+          <span className="text-[8px] font-black uppercase tracking-widest">{status === 'idle' ? 'Communicate' : 'Cease'}</span>
         </button>
       </div>
       <div className="text-center space-y-4 max-w-xl px-10">
         <h3 className="text-xs font-black uppercase tracking-[0.3em] opacity-40">{status.toUpperCase()}</h3>
-        {transcription && <p className="text-sm font-light italic text-white/60">"{transcription}"</p>}
-        {error && <p className="text-xs text-red-500 font-bold bg-red-500/10 p-4 rounded-2xl border border-red-500/20">{error}</p>}
+        {transcription && (
+          <div className="glass p-6 rounded-3xl animate-in fade-in slide-in-from-bottom-2">
+            <p className="text-sm font-light italic text-white/60">"{transcription}"</p>
+          </div>
+        )}
+        {error && (
+          <div className="text-xs text-red-500 font-bold bg-red-500/10 p-4 rounded-2xl border border-red-500/20 animate-pulse">
+            <i className="fas fa-exclamation-triangle mr-2"></i> {error}
+          </div>
+        )}
       </div>
     </div>
   );
