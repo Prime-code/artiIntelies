@@ -24,6 +24,7 @@ const MarkdownComponents = {
   ul: ({ children }: any) => <ul className="list-none mb-4 space-y-2 ml-1">{children}</ul>,
   ol: ({ children }: any) => <ol className="list-decimal ml-6 mb-4 space-y-2 font-bold text-nova-gold/80">{children}</ol>,
   li: ({ children, node }: any) => {
+    // Check if parent is ol
     const isOrdered = node?.parent?.tagName === 'ol';
     return (
       <li className={`text-[13px] ${isOrdered ? 'mb-1' : 'flex items-start gap-3'}`}>
@@ -168,7 +169,7 @@ const MessageBubble: React.FC<{
             </div>
           )}
 
-          {/* Feedback area only shown for Assistant messages (starting message #3) */}
+          {/* Feedback area only shown for Assistant messages (starting from 3rd message) */}
           {showFeedback && msg.role === 'assistant' && (
             <div className="mt-6 pt-5 border-t border-white/5 space-y-3">
               <div className="flex items-center justify-between">
@@ -224,7 +225,7 @@ const TextChat: React.FC<TextChatProps> = ({ userProfile, sysConfig, isSystemRes
     return saved ? JSON.parse(saved) : [
       {
         role: 'assistant',
-        content: `**Uplink Established.**\n\nWelcome back, ${userProfile.name}. I am Nova AI, your portal to the institutional intelligence of Nova Crest School. \n\nHow may I facilitate your discovery protocols today?`,
+        content: `**Uplink Established.**\n\nWelcome back, ${userProfile.name}. I am Nova AI, your portal to the institutional intelligence of Nova Crest School. \n\nHow may I facilitate your multimedia discovery protocols today?`,
         timestamp: Date.now()
       }
     ];
@@ -272,7 +273,7 @@ const TextChat: React.FC<TextChatProps> = ({ userProfile, sysConfig, isSystemRes
         model: 'gemini-3-flash-preview',
         contents: currentInput,
         config: { 
-          systemInstruction: NOVA_AI_SYSTEM_INSTRUCTION + `\nUser: ${userProfile.name}. Role: ${userProfile.type}. Protocol: Text/Media.`, 
+          systemInstruction: NOVA_AI_SYSTEM_INSTRUCTION + `\nUser: ${userProfile.name}. Role: ${userProfile.type}. Protocol: Multimedia-Enabled.`, 
           tools: [{ googleSearch: {} }] 
         }
       });
@@ -314,7 +315,7 @@ const TextChat: React.FC<TextChatProps> = ({ userProfile, sysConfig, isSystemRes
           The institutional AI uplink has been suspended by governance protocols for security maintenance.
         </p>
         <div className="mt-16 pt-12 border-t border-white/5 w-full max-w-[200px]">
-           <p className="text-[9px] font-black text-white/10 uppercase tracking-[0.3em]">Protocol v5.4.1 SECURED</p>
+           <p className="text-[9px] font-black text-white/10 uppercase tracking-[0.3em]">Protocol v5.4.2 SECURED</p>
         </div>
       </div>
     );
@@ -339,7 +340,7 @@ const TextChat: React.FC<TextChatProps> = ({ userProfile, sysConfig, isSystemRes
               <div className="w-1.5 h-1.5 bg-nova-gold/60 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
               <div className="w-1.5 h-1.5 bg-nova-gold/60 rounded-full animate-bounce"></div>
             </div>
-            <span className="text-[8px] font-black text-nova-gold/40 tracking-[0.4em] uppercase">Processing Data</span>
+            <span className="text-[8px] font-black text-nova-gold/40 tracking-[0.4em] uppercase">Processing Intelligence</span>
           </div>
         )}
         {error && <div className="text-[9px] font-black text-red-500 uppercase text-center p-4 glass rounded-[24px] border border-red-500/20 shadow-xl shadow-red-500/5">{error}</div>}
@@ -357,7 +358,7 @@ const TextChat: React.FC<TextChatProps> = ({ userProfile, sysConfig, isSystemRes
            </div>
            {input.trim() && (
              <span className="text-[8px] font-black uppercase tracking-[0.2em] text-white/20 animate-in fade-in">
-               Draft: {currentWordCount} Words
+               Drafting: {currentWordCount} Words
              </span>
            )}
         </div>
@@ -389,7 +390,7 @@ const TextChat: React.FC<TextChatProps> = ({ userProfile, sysConfig, isSystemRes
           </button>
         </div>
         
-        <p className="text-center mt-4 text-[7px] font-black text-white/10 uppercase tracking-[0.4em]">Institutional AI Uplink Protocol 5.4.1 SECURED</p>
+        <p className="text-center mt-4 text-[7px] font-black text-white/10 uppercase tracking-[0.4em]">Institutional AI Uplink Protocol 5.4.2 SECURED</p>
       </div>
     </div>
   );
