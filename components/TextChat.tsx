@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import ReactMarkdown from 'react-markdown';
@@ -15,7 +14,6 @@ const isVideoUrl = (url: string) => {
   return url.match(/\.(mp4|webm|ogg)$/i);
 };
 
-// Custom components for consistent and premium Markdown rendering
 const MarkdownComponents = {
   p: ({ children }: any) => <p className="mb-4 last:mb-0 leading-relaxed text-white/80 font-medium">{children}</p>,
   h1: ({ children }: any) => <h1 className="text-lg font-black mt-6 mb-3 uppercase tracking-tighter text-white border-b border-white/10 pb-2">{children}</h1>,
@@ -24,7 +22,6 @@ const MarkdownComponents = {
   ul: ({ children }: any) => <ul className="list-none mb-4 space-y-2 ml-1">{children}</ul>,
   ol: ({ children }: any) => <ol className="list-decimal ml-6 mb-4 space-y-2 font-bold text-nova-gold/80">{children}</ol>,
   li: ({ children, node }: any) => {
-    // Check if parent is ol
     const isOrdered = node?.parent?.tagName === 'ol';
     return (
       <li className={`text-[13px] ${isOrdered ? 'mb-1' : 'flex items-start gap-3'}`}>
@@ -169,7 +166,6 @@ const MessageBubble: React.FC<{
             </div>
           )}
 
-          {/* Feedback area only shown for Assistant messages (starting from 3rd message) */}
           {showFeedback && msg.role === 'assistant' && (
             <div className="mt-6 pt-5 border-t border-white/5 space-y-3">
               <div className="flex items-center justify-between">
@@ -203,7 +199,7 @@ const MessageBubble: React.FC<{
         </div>
         
         <div className={`text-[6px] opacity-10 font-medium px-2 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
-          {timeString} • ENCRYPTED
+          {timeString} • ENCRYPTED PROTOCOL
         </div>
       </div>
     </div>
@@ -225,7 +221,7 @@ const TextChat: React.FC<TextChatProps> = ({ userProfile, sysConfig, isSystemRes
     return saved ? JSON.parse(saved) : [
       {
         role: 'assistant',
-        content: `**Uplink Established.**\n\nWelcome back, ${userProfile.name}. I am Nova AI, your portal to the institutional intelligence of Nova Crest School. \n\nHow may I facilitate your multimedia discovery protocols today?`,
+        content: `**Uplink Established.**\n\nWelcome, ${userProfile.name}. I am Nova AI, representing the institutional excellence of Nova Crest School. \n\nHow may I facilitate your multimedia discovery protocols today?`,
         timestamp: Date.now()
       }
     ];
@@ -273,12 +269,12 @@ const TextChat: React.FC<TextChatProps> = ({ userProfile, sysConfig, isSystemRes
         model: 'gemini-3-flash-preview',
         contents: currentInput,
         config: { 
-          systemInstruction: NOVA_AI_SYSTEM_INSTRUCTION + `\nUser: ${userProfile.name}. Role: ${userProfile.type}. Protocol: Multimedia-Enabled.`, 
+          systemInstruction: NOVA_AI_SYSTEM_INSTRUCTION + `\nUser: ${userProfile.name}. Role: ${userProfile.type}. Portal: Multimedia-Active.`, 
           tools: [{ googleSearch: {} }] 
         }
       });
 
-      const textOutput = response.text || "Data uplink interrupted. Record lost.";
+      const textOutput = response.text || "Institutional data uplink interrupted. Record lost.";
       const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
       const sources = groundingChunks
         ?.map((chunk: any) => {
@@ -312,10 +308,10 @@ const TextChat: React.FC<TextChatProps> = ({ userProfile, sysConfig, isSystemRes
         </div>
         <h2 className="text-3xl font-black text-white uppercase tracking-tighter">{systemReason}</h2>
         <p className="text-white/30 text-[11px] font-black uppercase tracking-[0.5em] mt-6 max-w-[280px] leading-relaxed">
-          The institutional AI uplink has been suspended by governance protocols for security maintenance.
+          The institutional AI uplink has been suspended by governance protocols for system maintenance.
         </p>
         <div className="mt-16 pt-12 border-t border-white/5 w-full max-w-[200px]">
-           <p className="text-[9px] font-black text-white/10 uppercase tracking-[0.3em]">Protocol v5.4.2 SECURED</p>
+           <p className="text-[9px] font-black text-white/10 uppercase tracking-[0.3em]">Protocol v5.4.3 SECURED</p>
         </div>
       </div>
     );
@@ -330,7 +326,7 @@ const TextChat: React.FC<TextChatProps> = ({ userProfile, sysConfig, isSystemRes
             msg={msg} 
             userName={userProfile.name || 'Visitor'} 
             showFeedback={idx >= 2}
-            onFeedback={(text) => onFeedback(`[Inline Message #${idx+1}] ${text}`)}
+            onFeedback={(text) => onFeedback(`[Message #${idx+1}] ${text}`)}
           />
         ))}
         {isTyping && (
@@ -340,20 +336,19 @@ const TextChat: React.FC<TextChatProps> = ({ userProfile, sysConfig, isSystemRes
               <div className="w-1.5 h-1.5 bg-nova-gold/60 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
               <div className="w-1.5 h-1.5 bg-nova-gold/60 rounded-full animate-bounce"></div>
             </div>
-            <span className="text-[8px] font-black text-nova-gold/40 tracking-[0.4em] uppercase">Processing Intelligence</span>
+            <span className="text-[8px] font-black text-nova-gold/40 tracking-[0.4em] uppercase">Retrieving Institutional Records</span>
           </div>
         )}
         {error && <div className="text-[9px] font-black text-red-500 uppercase text-center p-4 glass rounded-[24px] border border-red-500/20 shadow-xl shadow-red-500/5">{error}</div>}
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Section */}
       <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-nova-navy via-nova-navy/95 to-transparent z-20">
         <div className="flex justify-between items-center mb-3 px-6">
            <div className="flex items-center gap-3">
              <div className={`w-2 h-2 rounded-full ${isQuotaExceeded ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]' : 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]'}`}></div>
              <span className={`text-[8px] font-black uppercase tracking-[0.2em] transition-colors ${isQuotaExceeded ? 'text-red-500' : 'text-nova-gold/40'}`}>
-               {isQuotaExceeded ? 'Quota Depleted' : `Word Pool: ${remainingQuota.toLocaleString()} REMAINING`}
+               {isQuotaExceeded ? 'Uplink Blocked' : `Word Pool: ${remainingQuota.toLocaleString()} REMAINING`}
              </span>
            </div>
            {input.trim() && (
@@ -369,7 +364,7 @@ const TextChat: React.FC<TextChatProps> = ({ userProfile, sysConfig, isSystemRes
             value={input} 
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder={isQuotaExceeded ? "Uplink restricted. Word pool exhausted." : "Enter institutional discovery prompt..."}
+            placeholder={isQuotaExceeded ? "Uplink restricted. Quota exhausted." : "Enter discovery prompt..."}
             disabled={isQuotaExceeded}
             className="flex-1 bg-transparent px-6 py-4 text-sm text-white placeholder:text-white/10 font-medium"
           />
@@ -390,7 +385,7 @@ const TextChat: React.FC<TextChatProps> = ({ userProfile, sysConfig, isSystemRes
           </button>
         </div>
         
-        <p className="text-center mt-4 text-[7px] font-black text-white/10 uppercase tracking-[0.4em]">Institutional AI Uplink Protocol 5.4.2 SECURED</p>
+        <p className="text-center mt-4 text-[7px] font-black text-white/10 uppercase tracking-[0.4em]">Nova Crest AI Protocol v5.4.3 SECURED</p>
       </div>
     </div>
   );

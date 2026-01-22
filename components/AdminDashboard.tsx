@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { UserProfile, AuditLog, SystemConfig, ChatLog, FeedbackLog } from '../types';
 
@@ -27,7 +26,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <h2 className="text-xl font-black text-white tracking-tighter uppercase">Governance</h2>
             <p className="text-[7px] font-black text-nova-gold uppercase tracking-[0.4em]">Administrative Authority</p>
          </div>
-         <button onClick={onLogout} className="px-4 py-2 bg-red-500/10 text-red-500 rounded-lg text-[8px] font-black uppercase tracking-widest border border-red-500/10">Purge Session</button>
+         <button onClick={onLogout} className="px-4 py-2 bg-red-500/10 text-red-500 rounded-lg text-[8px] font-black uppercase tracking-widest border border-red-500/10 hover:bg-red-500 hover:text-white transition-all">Purge Session</button>
       </div>
 
       {/* Internal Navigation */}
@@ -62,7 +61,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:border-nova-gold"
                     placeholder="Set Word Pool..."
                   />
-                  <button onClick={() => onUpdateQuota(Number(quotaInput))} className="px-6 py-3 bg-nova-gold text-nova-navy rounded-xl text-[9px] font-black uppercase tracking-widest">Update</button>
+                  <button onClick={() => onUpdateQuota(Number(quotaInput))} className="px-6 py-3 bg-nova-gold text-nova-navy rounded-xl text-[9px] font-black uppercase tracking-widest active:scale-95 transition-all">Update</button>
                </div>
                <div className="flex justify-between text-[8px] font-black uppercase text-white/20">
                  <span>Consumed: {sysConfig.usedQuota.toLocaleString()}</span>
@@ -129,7 +128,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <span className="text-[9px] font-black text-nova-gold uppercase tracking-widest">{log.userName}</span>
                       <span className="text-[8px] text-white/20">{new Date(log.timestamp).toLocaleTimeString()}</span>
                    </div>
-                   <p className="text-[10px] text-white/80 leading-relaxed">"{log.content}"</p>
+                   <p className="text-[10px] text-white/80 leading-relaxed italic">"{log.content}"</p>
                 </div>
               ))
             )}
