@@ -28,6 +28,11 @@ const VoiceChat: React.FC<VoiceChatProps> = ({ userProfile, appMode, onFeedback,
   const currentInputTranscription = useRef('');
   const currentOutputTranscription = useRef('');
 
+  const getEffectiveApiKey = () => {
+    const custom = localStorage.getItem('NOVA_CUSTOM_API_KEY');
+    return (custom && custom.trim() !== '') ? custom : process.env.API_KEY;
+  };
+
   const drawVisualizer = useCallback(() => {
     if (!canvasRef.current || !analyzerRef.current) return;
     const canvas = canvasRef.current;
@@ -100,12 +105,11 @@ const VoiceChat: React.FC<VoiceChatProps> = ({ userProfile, appMode, onFeedback,
       setError(null);
       setStatus('connecting');
       
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const ai = new GoogleGenAI({ apiKey: getEffectiveApiKey() });
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const audioCtx = new AudioContext({ sampleRate: 16000 });
       const outputCtx = new AudioContext({ sampleRate: 24000 });
       
-      // Ensure context is running (fixes silent initial start in some browsers)
       if (audioCtx.state === 'suspended') await audioCtx.resume();
       if (outputCtx.state === 'suspended') await outputCtx.resume();
 

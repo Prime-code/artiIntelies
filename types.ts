@@ -4,7 +4,7 @@ export interface UserProfile {
   email: string;
   type: 'parent' | 'student' | null;
   role: 'admin' | 'user';
-  credits: number; // In words
+  credits: number;
   subscriptionStatus: 'active' | 'expired' | 'none';
   plan: string | null;
   hasClaimedFree: boolean;
@@ -20,25 +20,14 @@ export interface Message {
   sources?: Array<{ title: string; uri: string }>;
 }
 
-export interface FeedbackLog {
-  userName: string;
-  userType: string;
-  rating: 'good' | 'bad';
-  timestamp: number;
-}
-
-export interface AuditLog {
-  timestamp: number;
-  type: 'success' | 'denied_confirmation' | 'denied_password' | 'password_reset' | 'mfa_enabled' | 'mfa_disabled' | 'key_rotation' | 'login_success' | 'login_failed';
-  userName: string;
-  details: string;
-}
-
-export interface SecuritySettings {
-  adminKey: string;
-  isMfaEnabled: boolean;
-  securityPin: string;
-  lastRotation: number;
+export interface WindowState {
+  id: string;
+  title: string;
+  icon: string;
+  isOpen: boolean;
+  isMaximized: boolean;
+  isMinimized: boolean;
+  zIndex: number;
 }
 
 export interface ChatLog {
@@ -59,4 +48,26 @@ export interface Plan {
   price: number;
   duration: 'daily' | 'weekly' | 'monthly';
   wordLimit: number;
+}
+
+// Fixed missing types used in governance and administration sections
+export interface FeedbackLog {
+  userName: string;
+  rating: 'good' | 'bad';
+  comment?: string;
+  timestamp: number;
+}
+
+export interface AuditLog {
+  type: 'login_success' | 'login_failure' | 'key_rotation' | 'success' | 'failure';
+  userName: string;
+  details: string;
+  timestamp: number;
+}
+
+export interface SecuritySettings {
+  adminKey: string;
+  isMfaEnabled: boolean;
+  securityPin: string;
+  lastRotation: number;
 }

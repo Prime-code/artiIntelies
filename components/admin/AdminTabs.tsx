@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { ChatLog, FeedbackLog, UserProfile, AppMode, AuditLog, SecuritySettings } from '../../types';
 
 export const ChatList: React.FC<{ chats: ChatLog[]; onSelect: (chat: ChatLog) => void; selectedChat: ChatLog | null }> = ({ chats, onSelect, selectedChat }) => (
@@ -90,22 +89,89 @@ export const SecurityPanel: React.FC<{
   </div>
 );
 
-export const GlobalSettings: React.FC<{ appMode: AppMode; onToggle: () => void }> = ({ appMode, onToggle }) => (
-  <div className="glass p-10 rounded-[40px] border border-white/5 space-y-10">
-    <div className="space-y-2">
-      <h3 className="text-2xl font-bold">Global Institution State</h3>
-      <p className="text-sm text-white/40">Manage system operating mode.</p>
-    </div>
-    <div className="flex items-center justify-between p-8 bg-white/5 rounded-3xl border border-white/10">
-      <div>
-        <p className="font-bold text-lg">Current Operating Mode</p>
-        <p className={`text-xs ${appMode === 'paid' ? 'text-red-400' : 'text-nova-gold'}`}>
-          {appMode === 'paid' ? 'Paid Mode: Strict word limits active.' : 'Test Mode: Credits bypass active.'}
-        </p>
+export const GlobalSettings: React.FC<{ appMode: AppMode; onToggle: () => void }> = ({ appMode, onToggle }) => {
+  const [apiKeyInput, setApiKeyInput] = useState(localStorage.getItem('NOVA_CUSTOM_API_KEY') || '');
+  const [showStatus, setShowStatus] = useState(false);
+
+  const envKeyPresent = !!process.env.API_KEY;
+  const customKeyPresent = !!localStorage.getItem('NOVA_CUSTOM_API_KEY');
+
+  const saveApiKey = () => {
+    localStorage.setItem('NOVA_CUSTOM_API_KEY', apiKeyInput);
+    setShowStatus(true);
+    setTimeout(() => setShowStatus(false), 3000);
+  };
+
+  const resetApiKey = () => {
+    setApiKeyInput('');
+    localStorage.removeItem('NOVA_CUSTOM_API_KEY');
+    alert('API key reset to institutional default.');
+  };
+
+  return (
+    <div className="space-y-10">
+      <div className="glass p-10 rounded-[40px] border border-white/5 space-y-10">
+        <div className="space-y-2">
+          <h3 className="text-2xl font-bold">Global Institution State</h3>
+          <p className="text-sm text-white/40">Manage system operating mode.</p>
+        </div>
+        <div className="flex items-center justify-between p-8 bg-white/5 rounded-3xl border border-white/10">
+          <div>
+            <p className="font-bold text-lg">Current Operating Mode</p>
+            <p className={`text-xs ${appMode === 'paid' ? 'text-red-400' : 'text-nova-gold'}`}>
+              {appMode === 'paid' ? 'Paid Mode: Strict word limits active.' : 'Test Mode: Credits bypass active.'}
+            </p>
+          </div>
+          <button onClick={onToggle} className={`px-10 py-4 rounded-full font-black text-xs uppercase tracking-widest transition-all ${appMode === 'test' ? 'bg-nova-gold text-nova-navy shadow-lg shadow-nova-gold/20' : 'bg-red-500/20 text-red-500 border border-red-500/40 hover:bg-red-500 hover:text-white'}`}>
+            {appMode === 'test' ? 'Switch to Paid' : 'Force Test Mode'}
+          </button>
+        </div>
       </div>
-      <button onClick={onToggle} className={`px-10 py-4 rounded-full font-black text-xs uppercase tracking-widest transition-all ${appMode === 'test' ? 'bg-nova-gold text-nova-navy shadow-lg shadow-nova-gold/20' : 'bg-red-500/20 text-red-500 border border-red-500/40 hover:bg-red-500 hover:text-white'}`}>
-        {appMode === 'test' ? 'Switch to Paid' : 'Force Test Mode'}
-      </button>
+
+      <div className="glass p-10 rounded-[40px] border border-white/5 space-y-8">
+        <div className="space-y-2">
+          <div className="flex justify-between items-start">
+             <h3 className="text-2xl font-bold">API Configuration</h3>
+             <div className="flex gap-2">
+                <div title="Institutional Default" className={`px-2 py-1 rounded text-[8px] font-black uppercase tracking-tighter border ${envKeyPresent ? 'bg-green-500/10 border-green-500/30 text-green-500' : 'bg-red-500/10 border-red-500/30 text-red-500'}`}>
+                  SYS_KEY: {envKeyPresent ? 'DETECTED' : 'MISSING'}
+                </div>
+                <div title="Custom Local Override" className={`px-2 py-1 rounded text-[8px] font-black uppercase tracking-tighter border ${customKeyPresent ? 'bg-blue-500/10 border-blue-500/30 text-blue-500' : 'bg-white/5 border-white/10 opacity-30'}`}>
+                  USR_KEY: {customKeyPresent ? 'ACTIVE' : 'NONE'}
+                </div>
+             </div>
+          </div>
+          <p className="text-sm text-white/40">Overrides the default institutional key. Required if the system key is exhausted or missing.</p>
+        </div>
+        <div className="flex flex-col gap-4">
+          <div className="flex gap-4">
+            <input 
+              type="password" 
+              value={apiKeyInput} 
+              onChange={(e) => setApiKeyInput(e.target.value)} 
+              placeholder="Enter custom Gemini API key..." 
+              className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-sm focus:outline-none focus:ring-1 focus:ring-nova-gold" 
+            />
+            <button 
+              onClick={saveApiKey}
+              className="px-8 py-4 bg-nova-gold text-nova-navy rounded-2xl font-black text-[10px] uppercase tracking-widest hover:brightness-110 transition-all shadow-lg shadow-nova-gold/10"
+            >
+              {showStatus ? 'Saved!' : 'Save Key'}
+            </button>
+          </div>
+          <div className="flex justify-between items-center px-2">
+            {apiKeyInput && (
+              <button 
+                onClick={resetApiKey}
+                className="text-[10px] font-bold text-red-500 uppercase tracking-widest hover:underline"
+              >
+                Clear Override
+              </button>
+            )}
+            <p className="text-[10px] text-white/20 italic">Note: Changes apply to the next session start.</p>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
