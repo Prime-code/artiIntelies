@@ -1,7 +1,5 @@
 {
   "name": "Nova AI - Nova Crest School Assistant",
-  "description": "A sophisticated virtual assistant for Nova Crest School, Enugu, providing real-time information about admissions, school programs, and core values through text and live voice interaction.",
-  "requestFramePermissions": [
-    "microphone"
-  ]
+  "description": "A sophisticated text-only virtual assistant for Nova Crest School, Enugu, providing real-time information about admissions, school programs, and core values.",
+  "requestFramePermissions": []
 }

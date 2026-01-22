@@ -20,16 +20,6 @@ export interface Message {
   sources?: Array<{ title: string; uri: string }>;
 }
 
-export interface WindowState {
-  id: string;
-  title: string;
-  icon: string;
-  isOpen: boolean;
-  isMaximized: boolean;
-  isMinimized: boolean;
-  zIndex: number;
-}
-
 export interface ChatLog {
   userName: string;
   messages: Message[];
@@ -37,20 +27,6 @@ export interface ChatLog {
   summary?: string;
 }
 
-export enum InteractionMode {
-  TEXT = 'TEXT',
-  VOICE = 'VOICE'
-}
-
-export interface Plan {
-  id: string;
-  name: string;
-  price: number;
-  duration: 'daily' | 'weekly' | 'monthly';
-  wordLimit: number;
-}
-
-// Fixed missing types used in governance and administration sections
 export interface FeedbackLog {
   userName: string;
   rating: 'good' | 'bad';
@@ -59,15 +35,34 @@ export interface FeedbackLog {
 }
 
 export interface AuditLog {
-  type: 'login_success' | 'login_failure' | 'key_rotation' | 'success' | 'failure';
+  type: 'login_success' | 'login_failure' | 'access_update' | 'success' | 'failure' | 'key_rotation';
   userName: string;
   details: string;
   timestamp: number;
 }
 
 export interface SecuritySettings {
-  adminKey: string;
+  authCode: string;
   isMfaEnabled: boolean;
-  securityPin: string;
+  accessPin: string;
   lastRotation: number;
+}
+
+// Fixed: Added missing Plan interface required by constants.tsx
+export interface Plan {
+  id: string;
+  name: string;
+  price: number;
+  duration: string;
+  wordLimit: number;
+}
+
+// Fixed: Added missing WindowState interface required by OS components
+export interface WindowState {
+  id: string;
+  title: string;
+  icon: string;
+  isOpen: boolean;
+  isMinimized: boolean;
+  zIndex: number;
 }

@@ -26,9 +26,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [newKey, setNewKey] = useState('');
   const [confirmKey, setConfirmKey] = useState('');
 
+  // Fixed: Updated to use authCode property as defined in SecuritySettings
   const rotateKey = () => {
     if (newKey && newKey === confirmKey) {
-      onUpdateSecurity({ ...security, adminKey: newKey, lastRotation: Date.now() });
+      onUpdateSecurity({ ...security, authCode: newKey, lastRotation: Date.now() });
       recordAudit('key_rotation', 'Key rotated.');
       setNewKey(''); setConfirmKey('');
     }

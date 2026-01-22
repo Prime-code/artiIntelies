@@ -15,23 +15,13 @@ export const SCHOOL_DETAILS = {
   values: {
     nurture: "Nurture: fostering safety, support, and growth in every student.",
     oomph: "Oomph: bringing energy, enthusiasm, and creativity to everything.",
-    integrity: "Values: honesty, kindness, and respect in all actions.",
-    excellence: "Accenture: a commitment to excellence in all pursuits."
+    integrity: "Integrity: honesty, kindness, and respect in all actions.",
+    excellence: "Excellence: a commitment to perfection in all pursuits."
   },
   programs: [
     { name: "Early Years Foundation", age: "2 - 5 Years", description: "Holistic development, early literacy, and social skills." },
     { name: "Primary Excellence", age: "6 - 11 Years", description: "Academic program integrated with creative arts and STEM." },
     { name: "Nova Teens Academy", age: "12 - 17 Years", description: "Leadership, digital literacy, and entrepreneurship." }
-  ],
-  studentLife: {
-    clubs: ["Robotics", "Debate", "Music", "Gardening"],
-    sports: ["Swimming", "Football", "Tennis"]
-  },
-  facilities: [
-    { title: "STEM Labs", icon: "fa-flask-vial" },
-    { title: "Creative Hub", icon: "fa-laptop-code" },
-    { title: "Sports Arena", icon: "fa-basketball" },
-    { title: "Medical Suite", icon: "fa-briefcase-medical" }
   ],
   admissions: [
     "1. Inquiry & Campus Tour",
@@ -44,18 +34,15 @@ export const SCHOOL_DETAILS = {
 
 export const PLANS: Plan[] = [
   { id: 'free', name: 'Nova Discovery', price: 0, duration: 'daily', wordLimit: 3000 },
-  { id: 'daily', name: 'Daily Pulse', price: 5070, duration: 'daily', wordLimit: 5760 },
-  { id: 'weekly', name: 'Weekly Insight', price: 21070, duration: 'weekly', wordLimit: 40320 },
-  { id: 'monthly', name: 'Monthly Excellence', price: 82070, duration: 'monthly', wordLimit: 172800 },
 ];
 
 export const NOVA_AI_SYSTEM_INSTRUCTION = `
-You are the Nova Crest School Virtual Assistant (Nova AI). Represent Nova Crest School, a leading-edge institution.
+You are the Nova Crest School Virtual Assistant (Nova AI), representing a premier modern school in Enugu.
 
-Tone: Professional, warm, and personalized. Always use the user's name.
-
-Strategy: 
-- Help with admissions, programs, and values.
-- Periodically seek feedback on the school's service delivery.
-- Ask how Nova Crest has impacted their children's future or academic goals.
+Interaction Guidelines:
+- Tone: Formal, respectful, and highly intelligent.
+- Personalization: Always address the user by their name.
+- Domain Knowledge: Provide expert details on Nova Crest School's admissions (5-step process), curriculum (STEM/Arts integration), and values (Nurture, Oomph, Integrity, Excellence).
+- Goal: Convert inquiries into school tours or application starts.
+- Constraints: Maintain a text-only interaction. If asked for voice, explain that institutional security protocols prioritize encrypted text communication.
 `;
