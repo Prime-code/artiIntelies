@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { ChatLog, FeedbackLog, UserProfile, AppMode, AuditLog, SecuritySettings } from '../../types';
 
@@ -27,8 +28,8 @@ export const UserList: React.FC<{ users: UserProfile[] }> = ({ users }) => (
           <span className="text-[8px] font-black uppercase bg-nova-gold/10 text-nova-gold px-2 py-1 rounded">{user.type || 'N/A'}</span>
         </div>
         <div className="flex justify-between items-center text-[10px] font-medium bg-white/5 p-3 rounded-xl">
-          <span>Credits: {user.credits}</span>
-          <span className={`px-2 py-0.5 rounded-full ${user.subscriptionStatus === 'active' ? 'text-green-500 bg-green-500/10' : 'text-red-500 bg-red-500/10'}`}>{user.subscriptionStatus}</span>
+          <span>Consumed: {user.creditsUsed}</span>
+          <span className={`px-2 py-0.5 rounded-full ${user.isRestricted ? 'text-red-500 bg-red-500/10' : 'text-green-500 bg-green-500/10'}`}>{user.isRestricted ? 'Restricted' : 'Active'}</span>
         </div>
       </div>
     ))}

@@ -1,17 +1,21 @@
+export type AppMode = 'paid' | 'test';
+
+export interface SecuritySettings {
+  isMfaEnabled: boolean;
+}
 
 export interface UserProfile {
   name: string;
   email: string;
   type: 'parent' | 'student' | null;
   role: 'admin' | 'user';
-  credits: number;
-  subscriptionStatus: 'active' | 'expired' | 'none';
-  plan: string | null;
-  hasClaimedFree: boolean;
+  creditsUsed: number;
+  creditLimit: number; // For admin reference/legacy
+  isRestricted: boolean;
   isAuthenticated: boolean;
+  isOnboarded: boolean;
+  lastActive: number;
 }
-
-export type AppMode = 'test' | 'paid';
 
 export interface Message {
   role: 'user' | 'assistant';
@@ -20,44 +24,43 @@ export interface Message {
   sources?: Array<{ title: string; uri: string }>;
 }
 
-export interface ChatLog {
-  userName: string;
-  messages: Message[];
-  timestamp: number;
-  summary?: string;
-}
-
-export interface FeedbackLog {
-  userName: string;
-  rating: 'good' | 'bad';
-  comment?: string;
-  timestamp: number;
-}
-
 export interface AuditLog {
-  type: 'login_success' | 'login_failure' | 'access_update' | 'success' | 'failure' | 'key_rotation';
+  type: 'login' | 'restriction_active' | 'restriction_lifted' | 'system_update' | 'credit_allocation' | 'login_success' | 'success';
   userName: string;
   details: string;
   timestamp: number;
 }
 
-export interface SecuritySettings {
-  authCode: string;
-  isMfaEnabled: boolean;
-  accessPin: string;
-  lastRotation: number;
+export interface SystemConfig {
+  isActive: boolean;
+  totalQuota: number;
+  usedQuota: number;
 }
 
-// Fixed: Added missing Plan interface required by constants.tsx
-export interface Plan {
+export interface ChatLog {
+  email: string;
+  userName: string;
+  timestamp: number;
+  summary: string;
+  wordCount: number;
+}
+
+export interface FeedbackLog {
   id: string;
-  name: string;
-  price: number;
-  duration: string;
-  wordLimit: number;
+  userName: string;
+  content: string;
+  timestamp: number;
 }
 
-// Fixed: Added missing WindowState interface required by OS components
+export interface ExploreUpdate {
+  id: string;
+  category: 'Strategic' | 'Events' | 'Campus';
+  title: string;
+  excerpt: string;
+  details: string;
+  date: string;
+}
+
 export interface WindowState {
   id: string;
   title: string;

@@ -1,25 +1,29 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { UserProfile } from '../../types';
 
 interface OnboardingOverlayProps {
-  step: number;
-  setStep: (step: number) => void;
   profile: UserProfile;
   setProfile: (profile: UserProfile) => void;
 }
 
-const OnboardingOverlay: React.FC<OnboardingOverlayProps> = ({ step, setStep, profile, setProfile }) => {
+const OnboardingOverlay: React.FC<OnboardingOverlayProps> = ({ profile, setProfile }) => {
+  const [step, setStep] = useState(0);
+  const [localName, setLocalName] = useState(profile.name);
+  const [localType, setLocalType] = useState<'parent' | 'student' | null>(profile.type);
   
   const handleSelectRole = (type: 'parent' | 'student') => {
-    // Correctly update both state pieces to ensure step 2 is entered immediately
-    setProfile({ ...profile, type });
+    setLocalType(type);
     setStep(2);
   };
 
   const handleFinish = () => {
-    if (profile.name.trim()) {
-      setStep(3);
+    if (localName.trim() && localType) {
+      setProfile({ 
+        ...profile, 
+        name: localName.trim(), 
+        type: localType, 
+        isOnboarded: true 
+      });
     }
   };
 
@@ -62,7 +66,7 @@ const OnboardingOverlay: React.FC<OnboardingOverlayProps> = ({ step, setStep, pr
             <div className="grid grid-cols-1 gap-4">
               <button 
                 onClick={() => handleSelectRole('parent')} 
-                className="glass p-8 rounded-[32px] flex items-center gap-6 hover:bg-white/5 transition-all border border-white/10 group active:scale-95"
+                className="glass p-8 rounded-[32px] flex items-center gap-6 hover:bg-white/5 transition-all border-none group active:scale-95"
               >
                 <div className="w-14 h-14 rounded-2xl bg-nova-gold/10 flex items-center justify-center text-nova-gold group-hover:scale-105 transition-transform">
                   <i className="fas fa-user-tie text-2xl"></i>
@@ -76,7 +80,7 @@ const OnboardingOverlay: React.FC<OnboardingOverlayProps> = ({ step, setStep, pr
               
               <button 
                 onClick={() => handleSelectRole('student')} 
-                className="glass p-8 rounded-[32px] flex items-center gap-6 hover:bg-white/5 transition-all border border-white/10 group active:scale-95"
+                className="glass p-8 rounded-[32px] flex items-center gap-6 hover:bg-white/5 transition-all border-none group active:scale-95"
               >
                 <div className="w-14 h-14 rounded-2xl bg-nova-gold/10 flex items-center justify-center text-nova-gold group-hover:scale-105 transition-transform">
                   <i className="fas fa-user-graduate text-2xl"></i>
@@ -104,13 +108,13 @@ const OnboardingOverlay: React.FC<OnboardingOverlayProps> = ({ step, setStep, pr
                 placeholder="Ex: David Okoro" 
                 autoFocus
                 className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-6 text-xl text-center focus:border-nova-gold/40 transition-all placeholder:opacity-20 text-nova-gold font-bold"
-                value={profile.name} 
-                onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                onKeyDown={(e) => e.key === 'Enter' && profile.name.trim() && handleFinish()}
+                value={localName} 
+                onChange={(e) => setLocalName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && localName.trim() && handleFinish()}
               />
               <button 
                 onClick={handleFinish} 
-                disabled={!profile.name.trim()} 
+                disabled={!localName.trim()} 
                 className="w-full bg-nova-gold text-nova-navy py-5 rounded-2xl font-black text-[11px] uppercase tracking-[0.4em] hover:brightness-110 active:scale-95 shadow-xl shadow-nova-gold/10 disabled:opacity-20 transition-all"
               >
                 Enter Institutional Portal

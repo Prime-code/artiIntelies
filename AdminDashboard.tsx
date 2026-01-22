@@ -1,22 +1,22 @@
 
 import React, { useState } from 'react';
-import { UserProfile, AuditLog, SystemConfig, ChatLog, FeedbackLog } from '../types';
+// Fix: Corrected import path to reference types in the same directory and use ChatLog
+import { UserProfile, AuditLog, SystemConfig, ChatLog } from './types';
 
 interface AdminDashboardProps {
   onLogout: () => void;
   leads: UserProfile[];
   auditLogs: AuditLog[];
   chatSummaries: ChatLog[];
-  feedbackLogs: FeedbackLog[];
   sysConfig: SystemConfig;
   onUpdateQuota: (quota: number) => void;
   onToggleSystem: (active: boolean) => void;
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ 
-  onLogout, leads, auditLogs, chatSummaries, feedbackLogs, sysConfig, onUpdateQuota, onToggleSystem 
+  onLogout, leads, auditLogs, chatSummaries, sysConfig, onUpdateQuota, onToggleSystem 
 }) => {
-  const [activeTab, setActiveTab] = useState<'system' | 'leads' | 'transcripts' | 'feedback' | 'logs'>('system');
+  const [activeTab, setActiveTab] = useState<'system' | 'leads' | 'transcripts' | 'logs'>('system');
   const [quotaInput, setQuotaInput] = useState(sysConfig.totalQuota.toString());
 
   return (
@@ -32,7 +32,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       {/* Internal Navigation */}
       <div className="flex border-b border-white/5 overflow-x-auto no-scrollbar shrink-0">
-        {['system', 'leads', 'transcripts', 'feedback', 'logs'].map((tab) => (
+        {['system', 'leads', 'transcripts', 'logs'].map((tab) => (
           <button 
             key={tab} 
             onClick={() => setActiveTab(tab as any)}
@@ -115,24 +115,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                  <div className="text-[8px] font-bold text-white/20 uppercase tracking-tighter">Consumption: {chat.wordCount} words</div>
               </div>
             ))}
-          </div>
-        )}
-
-        {activeTab === 'feedback' && (
-          <div className="space-y-3">
-            {feedbackLogs.length === 0 ? (
-              <p className="text-[9px] text-white/20 text-center py-20 uppercase font-black tracking-widest">No feedback briefs logged.</p>
-            ) : (
-              feedbackLogs.map((log) => (
-                <div key={log.id} className="glass p-4 rounded-xl border-none space-y-2">
-                   <div className="flex justify-between items-center">
-                      <span className="text-[9px] font-black text-nova-gold uppercase tracking-widest">{log.userName}</span>
-                      <span className="text-[8px] text-white/20">{new Date(log.timestamp).toLocaleTimeString()}</span>
-                   </div>
-                   <p className="text-[10px] text-white/80 leading-relaxed">"{log.content}"</p>
-                </div>
-              ))
-            )}
           </div>
         )}
 

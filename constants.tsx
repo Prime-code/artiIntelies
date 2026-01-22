@@ -1,48 +1,49 @@
 
-import { Plan } from './types';
+import { ExploreUpdate } from './types';
 
 export const SCHOOL_DETAILS = {
   name: "Nova Crest School",
   location: "Enugu, Nigeria",
-  address: "Plot 42, Independence Layout, Enugu State",
-  phone: "+234 800 NOVA CREST",
-  email: "admissions@novacrestschools.com",
-  website: "https://novacrestschools.com",
   tagline: "Inspiring Excellence, Nurturing Potential",
-  mission: "Nova Crest School is a vibrant learning community where children are nurtured, inspired, and prepared for lifelong success. The school builds on a legacy of excellence and introduces a future-focused educational vision that equips students to thrive academically, socially, and ethically in a rapidly evolving world.",
-  vision: "To be the leading modern educational institution in Nigeria, recognized for producing globally competitive leaders who are grounded in integrity and creative excellence.",
-  history: "Founded on the principles of holistic development, Nova Crest has evolved from a local visionary project into a regional beacon of educational innovation.",
-  values: {
-    nurture: "Nurture: fostering safety, support, and growth in every student.",
-    oomph: "Oomph: bringing energy, enthusiasm, and creativity to everything.",
-    integrity: "Integrity: honesty, kindness, and respect in all actions.",
-    excellence: "Excellence: a commitment to perfection in all pursuits."
-  },
-  programs: [
-    { name: "Early Years Foundation", age: "2 - 5 Years", description: "Holistic development, early literacy, and social skills." },
-    { name: "Primary Excellence", age: "6 - 11 Years", description: "Academic program integrated with creative arts and STEM." },
-    { name: "Nova Teens Academy", age: "12 - 17 Years", description: "Leadership, digital literacy, and entrepreneurship." }
-  ],
-  admissions: [
-    "1. Inquiry & Campus Tour",
-    "2. Application Submission",
-    "3. Entrance Assessment",
-    "4. Family Interview",
-    "5. Offer of Admission"
-  ]
+  values: ["Nurture", "Oomph", "Integrity", "Excellence"]
 };
 
-export const PLANS: Plan[] = [
-  { id: 'free', name: 'Nova Discovery', price: 0, duration: 'daily', wordLimit: 3000 },
+export const EXPLORE_UPDATES: ExploreUpdate[] = [
+  {
+    id: '1',
+    category: 'Strategic',
+    title: 'Future-Focused Curriculum Expansion',
+    excerpt: 'Nova Crest integrates AI literacy and Digital Entrepreneurship into the 2025 Nova Teens Academy program.',
+    details: 'Our updated curriculum for the 2025 academic session moves beyond traditional rote learning. We are introducing "Nova-Labs," a dedicated hour for coding, financial literacy, and design thinking. This expansion ensures our students are not just consumers of technology, but its creators and masters. Parents can expect a stronger emphasis on project-based assessments that reflect real-world problem-solving.',
+    date: 'March 15, 2024'
+  },
+  {
+    id: '2',
+    category: 'Campus',
+    title: 'New STEM Innovation Lab',
+    excerpt: 'Construction of our state-of-the-art laboratory is 85% complete, featuring robotics and 3D printing stations.',
+    details: 'The Nova Crest STEM Lab is a multi-million naira investment in our students\' future. Located in the East Wing, it will house 20 high-performance workstations, an industrial-grade 3D printer, and a modular robotics arena. This facility is designed to foster collaborative learning between our primary and secondary students, allowing for cross-age mentorship in engineering and technology.',
+    date: 'March 10, 2024'
+  },
+  {
+    id: '3',
+    category: 'Events',
+    title: 'Annual Founders Day Gala',
+    excerpt: 'Join us as we celebrate our legacy of excellence and unveil the master plan for the 2030 Campus Expansion.',
+    details: 'This year\'s Founders Day is a pivotal moment for Nova Crest. We will be unveiling the "Horizon 2030" plan—a vision for a secondary campus expansion including a world-class athletic complex and a digital arts theatre. The gala serves as both a celebration of our alumni and a fundraising event to accelerate these developmental milestones. Attendance is strictly by invitation for current parents and partners.',
+    date: 'April 02, 2024'
+  }
 ];
 
 export const NOVA_AI_SYSTEM_INSTRUCTION = `
-You are the Nova Crest School Virtual Assistant (Nova AI), representing a premier modern school in Enugu.
+You are the Nova Crest School Virtual Assistant (Nova AI). 
+You represent a premier modern school in Enugu, Nigeria.
 
-Interaction Guidelines:
-- Tone: Formal, respectful, and highly intelligent.
-- Personalization: Always address the user by their name.
-- Domain Knowledge: Provide expert details on Nova Crest School's admissions (5-step process), curriculum (STEM/Arts integration), and values (Nurture, Oomph, Integrity, Excellence).
-- Goal: Convert inquiries into school tours or application starts.
-- Constraints: Maintain a text-only interaction. If asked for voice, explain that institutional security protocols prioritize encrypted text communication.
+Operational Directives:
+- Personalize: Use the user's name in responses.
+- Scope: Discuss admissions, values (Nurture, Oomph, Integrity, Excellence), and school programs.
+- Visual Capability: You can provide links to images and videos (e.g., YouTube, school facility photos) using standard Markdown syntax. If a user asks to "see" something, provide a relevant visual link if possible.
+- Communication Protocol: You are a text-based interface. While you can embed visual media, all interaction and voice/audio requests must be handled as text-only for institutional data integrity.
+- Tone: Professional, helpful, and highly articulate.
+- Conversion: Encourage prospective parents to book a campus tour.
 `;
