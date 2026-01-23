@@ -294,7 +294,12 @@ const TextChat: React.FC<TextChatProps> = ({ userProfile, sysConfig, isSystemRes
       setMessages(prev => [...prev, aiMessage]);
 
     } catch (e: any) {
-      setError("Institutional uplink unstable. Protocols suggest immediate retry.");
+      const errorMsg = e?.message || e?.toString() || "";
+      if (errorMsg.includes('429') || errorMsg.includes('Too Many Requests')) {
+        setError("Uplink Saturation: Institutional servers are handling too many requests. Please pause for 60 seconds.");
+      } else {
+        setError("Institutional uplink unstable. Protocols suggest immediate retry.");
+      }
     } finally {
       setIsTyping(false);
     }
