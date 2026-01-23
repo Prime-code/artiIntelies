@@ -243,6 +243,27 @@ const TextChat: React.FC<TextChatProps> = ({ userProfile, sysConfig, isSystemRes
   const remainingQuota = Math.max(0, sysConfig.totalQuota - sysConfig.usedQuota - currentWordCount);
   const isQuotaExceeded = currentWordCount > (sysConfig.totalQuota - sysConfig.usedQuota);
 
+  // Automatic retry logic with exponential backoff for 429 errors
+  const callWithRetry = async (fn: () => Promise<any>, maxRetries = 3) => {
+    let lastError: any;
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        return await fn();
+      } catch (e: any) {
+        lastError = e;
+        const msg = e?.message || e?.toString() || "";
+        if (msg.includes('429') || msg.includes('Too Many Requests')) {
+          // Wait longer each time: 2s, 4s, 8s
+          const waitTime = Math.pow(2, i + 1) * 1000;
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          continue; 
+        }
+        throw e; // If it's not a rate limit error, fail immediately
+      }
+    }
+    throw lastError;
+  };
+
   const handleSend = async () => {
     if (!input.trim() || isTyping || isSystemRestricted || isQuotaExceeded) return;
     
@@ -265,14 +286,15 @@ const TextChat: React.FC<TextChatProps> = ({ userProfile, sysConfig, isSystemRes
 
     try {
       const ai = new GoogleGenAI({ apiKey: key });
-      const response = await ai.models.generateContent({
+      
+      const response = await callWithRetry(() => ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: currentInput,
         config: { 
           systemInstruction: NOVA_AI_SYSTEM_INSTRUCTION + `\nUser: ${userProfile.name}. Role: ${userProfile.type}. Portal: Multimedia-Active.`, 
           tools: [{ googleSearch: {} }] 
         }
-      });
+      }));
 
       const textOutput = response.text || "Institutional data uplink interrupted. Record lost.";
       const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
@@ -296,7 +318,7 @@ const TextChat: React.FC<TextChatProps> = ({ userProfile, sysConfig, isSystemRes
     } catch (e: any) {
       const errorMsg = e?.message || e?.toString() || "";
       if (errorMsg.includes('429') || errorMsg.includes('Too Many Requests')) {
-        setError("Uplink Saturation: Institutional servers are handling too many requests. Please pause for 60 seconds.");
+        setError("Uplink Saturation: Institutional servers are heavily congested even after retries. Please wait 60 seconds.");
       } else {
         setError("Institutional uplink unstable. Protocols suggest immediate retry.");
       }
